@@ -1,0 +1,285 @@
+/* ========================
+   ENTRANCE ANIMATIONS
+   ======================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ========================
+   SPECIAL EFFECTS
+   ======================== */
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================
+   SLIDE ANIMATIONS
+   ======================== */
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ========================
+   COMPONENT ANIMATIONS
+   ======================== */
+
+/* Logo animation */
+.logo-dot {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* Hero shapes animations */
+.hero-shapes .circle {
+  animation: float 6s ease-in-out infinite;
+}
+
+.hero-shapes .triangle {
+  animation: float 8s ease-in-out infinite 1s;
+}
+
+.hero-shapes .square {
+  animation: float 7s ease-in-out infinite 0.5s;
+}
+
+/* Button hover animation */
+.btn-primary:hover {
+  animation: pulse 0.5s ease;
+}
+
+/* Feature cards animation */
+.feature-card:hover {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ========================
+   PAGE TRANSITIONS
+   ======================== */
+
+/* Hero section */
+.hero-content {
+  animation: fadeInUp 1s ease-out both;
+}
+
+.hero-title .title-line:nth-child(1) {
+  animation: fadeInLeft 0.8s ease-out both;
+}
+
+.hero-title .title-line:nth-child(2) {
+  animation: fadeInRight 0.8s ease-out both 0.3s;
+}
+
+.hero-subtitle {
+  animation: fadeInUp 1s ease-out both 0.6s;
+}
+
+.hero-buttons {
+  animation: fadeInUp 1s ease-out both 0.9s;
+}
+
+/* Features section */
+.feature-card:nth-child(1) {
+  animation: fadeInUp 0.8s ease-out both 0.3s;
+}
+
+.feature-card:nth-child(2) {
+  animation: fadeInUp 0.8s ease-out both 0.6s;
+}
+
+.feature-card:nth-child(3) {
+  animation: fadeInUp 0.8s ease-out both 0.9s;
+}
+
+/* Slideshow section */
+.slideshow {
+  animation: fadeIn 1s ease-out both 0.3s;
+}
+
+/* Contact section */
+.contact-info {
+  animation: fadeInLeft 1s ease-out both;
+}
+
+.contact-form {
+  animation: fadeInRight 1s ease-out both;
+}
+
+/* Footer animation */
+.footer {
+  animation: fadeInUp 1s ease-out both;
+}
+
+/* ========================
+   UTILITY CLASSES
+   ======================== */
+
+.animate {
+  animation-duration: 1s;
+  animation-fill-mode: both;
+}
+
+.animate--infinite {
+  animation-iteration-count: infinite;
+}
+
+.animate--delay-1s {
+  animation-delay: 1s;
+}
+
+.animate--fast {
+  animation-duration: 0.6s;
+}
+
+.animate--slow {
+  animation-duration: 2s;
+}
+
+/* Fade In */
+.animate--fade-in {
+  animation-name: fadeIn;
+}
+
+/* Fade In Up */
+.animate--fade-in-up {
+  animation-name: fadeInUp;
+}
+
+/* Fade In Down */
+.animate--fade-in-down {
+  animation-name: fadeInDown;
+}
+
+/* Fade In Left */
+.animate--fade-in-left {
+  animation-name: fadeInLeft;
+}
+
+/* Fade In Right */
+.animate--fade-in-right {
+  animation-name: fadeInRight;
+}
+
+/* Pulse */
+.animate--pulse {
+  animation-name: pulse;
+  animation-duration: 2s;
+}
+
+/* Float */
+.animate--float {
+  animation-name: float;
+  animation-duration: 6s;
+}
