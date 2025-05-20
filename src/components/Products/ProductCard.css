@@ -1,0 +1,134 @@
+.product-card {
+  position: relative;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.product-card.featured {
+  border-left: 4px solid #FFD700;
+}
+
+.featured-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #FFD700;
+  color: #333;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 1;
+}
+
+.product-image-container {
+  position: relative;
+  width: 100%;
+  padding-top: 75%; /* 4:3 aspect ratio */
+  overflow: hidden;
+}
+
+.product-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+.product-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px !important;
+  gap: 8px;
+}
+
+.product-date {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.product-title {
+  font-weight: 600 !important;
+  color: #333;
+  line-height: 1.3;
+}
+
+.product-price {
+  color: #2e7d32;
+  font-weight: 700 !important;
+}
+
+.product-description {
+  color: #666;
+  margin: 8px 0 !important;
+}
+
+.product-seller {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.seller-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.seller-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.verified-badge {
+  margin-left: auto;
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+.product-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .product-image-container {
+    padding-top: 100%; /* Square aspect ratio on mobile */
+  }
+  
+  .product-content {
+    padding: 12px !important;
+  }
+}

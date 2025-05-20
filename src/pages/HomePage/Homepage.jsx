@@ -1,10 +1,10 @@
 import React from 'react';
 
-import Hero from '../components/Hero';
-import Features from '../components/Features';
-import Slideshow from '../components/Slideshow';
-import Contact from '../components/Contact';
-import Footer from '../components/Footer';
+import Hero from '../../components/Homepage/Hero';
+import Features from '../../components/Homepage/Features';
+import Slideshow from '../../components/Homepage/Slideshow';
+import Contact from '../../components/Homepage/Contact';
+import Footer from '../../components/Homepage/Footer';
 import './Homepage.css';
 import './animation.css';
 

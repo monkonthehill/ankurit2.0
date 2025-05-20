@@ -1,0 +1,113 @@
+/* Profile Header Container */
+.profile-header-container {
+  position: relative;
+  margin-bottom: 6rem;
+  border-radius: 12px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+/* Cover Photo Section */
+.cover-photo-container {
+  position: relative;
+  height: 250px;
+  overflow: hidden;
+  background-color: #a5d6a7;
+  background-image: linear-gradient(135deg, #a5d6a7 0%, #4caf50 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Profile Photo Circle */
+.profile-photo-container {
+  position: absolute;
+  bottom: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid white;
+  border-radius: 50%;
+  background-color: white;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.profile-photo-container:hover {
+  transform: translateX(-50%) scale(1.05);
+}
+
+/* Action Buttons */
+.action-buttons-container {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 3;
+}
+
+/* Buttons */
+.profile-header-btn {
+  background-color: white;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: 600;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.profile-header-btn:hover {
+  background-color: #f5f5f5;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.edit-profile-btn {
+  color: #2e7d32;
+}
+
+.logout-btn {
+  color: #d32f2f;
+}
+
+/* Camera Buttons */
+.camera-btn {
+  background-color: white;
+  color: #2e7d32;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.camera-btn:hover {
+  background-color: #f5f5f5;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .cover-photo-container {
+    height: 200px;
+  }
+  
+  .action-buttons-container {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  
+  .profile-photo-container {
+    bottom: -60px;
+  }
+}

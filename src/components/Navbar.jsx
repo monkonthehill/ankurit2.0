@@ -5,13 +5,14 @@ import {
 } from "lucide-react";
 import logo from "./logo.png";
 import './Navbar.css';
+import { useUser } from "../firebase/UserProvider"; // Adjust the import path as needed
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchPlaceholder, setSearchPlaceholder] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const { user } = useUser();
 
   const placeholders = [
     "Search for plants... ",
@@ -22,7 +23,7 @@ const Navbar = () => {
 
   // Cycle through placeholders
   useEffect(() => {
-        const handleScroll = () => {
+    const handleScroll = () => {
       const isScrolled = window.scrollY > 10;
       if (isScrolled !== scrolled) {
         setScrolled(isScrolled);
@@ -35,7 +36,6 @@ const Navbar = () => {
     return () => clearInterval(interval);
   }, []);
 
-
   return (
     <>
       {/* Mobile Header */}
@@ -44,7 +44,6 @@ const Navbar = () => {
         <div className="mobile-logo-container">
           <a href="/">
             <img src={logo} alt="Ankurit Logo" className="logo" />
-          
           </a>
         </div>
 
@@ -111,16 +110,20 @@ const Navbar = () => {
             />
           </div>
 
-          {isLoggedIn ? (
-            <div className="user-profile">
-              <User size={20} />
+          {user ? (
+            <a href="/profile" className="user-profile">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="user-avatar" />
+              ) : (
+                <User size={20} />
+              )}
               <span>My Account</span>
-            </div>
+            </a>
           ) : (
-            <button className="login-button">
+            <a href="/auth" className="login-button">
               <LogIn size={16} />
               <span>Login</span>
-            </button>
+            </a>
           )}
         </div>
       </header>
@@ -158,10 +161,21 @@ const Navbar = () => {
         </a>
 
         {/* Login Button in Bottom Right */}
-        <a href="/login" className="mobile-nav-item login-nav-item">
-          <LogIn size={22} className="nav-icon" />
-          <span>Login</span>
-        </a>
+        {user ? (
+          <a href="/profile" className="mobile-nav-item login-nav-item">
+            {user.photoURL ? (
+              <img src={user.photoURL} alt="Profile" className="user-avatar-small" />
+            ) : (
+              <User size={22} className="nav-icon" />
+            )}
+            <span>Profile</span>
+          </a>
+        ) : (
+          <a href="/auth" className="mobile-nav-item login-nav-item">
+            <LogIn size={22} className="nav-icon" />
+            <span>Login</span>
+          </a>
+        )}
       </div>
 
       {/* Mobile Menu Overlay */}
@@ -169,13 +183,17 @@ const Navbar = () => {
         <div className="mobile-menu-content">
           <div className="mobile-menu-header">
             <div className="user-greeting">
-              {isLoggedIn ? (
+              {user ? (
                 <>
                   <div className="user-avatar">
-                    <User size={24} />
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt="Profile" className="user-avatar-img" />
+                    ) : (
+                      <User size={24} />
+                    )}
                   </div>
                   <div>
-                    <h3>Welcome Back!</h3>
+                    <h3>Welcome Back, {user.displayName || 'User'}!</h3>
                     <p>Premium Member</p>
                   </div>
                 </>

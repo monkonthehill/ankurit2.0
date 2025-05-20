@@ -1,0 +1,57 @@
+{
+  "rules": {
+    "products": {
+      ".read": true,
+      ".indexOn": ["sellerId"], // Add this line to index the sellerId field
+      "$productId": {
+        ".write": "
+          auth != null &&
+          (
+            (!data.exists() && 
+             newData.exists() && 
+             newData.child('sellerId').val() == auth.uid &&
+             newData.child('name').val() != '' &&
+             newData.child('price').val() > 0 &&
+             newData.child('shortDescription').val() != '' &&
+             newData.child('location').val() != '') ||
+            
+            (data.exists() && 
+             newData.exists() && 
+             data.child('sellerId').val() == auth.uid &&
+             newData.child('sellerId').val() == auth.uid &&
+             newData.child('name').val() != '' &&
+             newData.child('price').val() > 0 &&
+             newData.child('shortDescription').val() != '' &&
+             newData.child('location').val() != '') ||
+            
+            (data.exists() && 
+             !newData.exists() && 
+             data.child('sellerId').val() == auth.uid)
+          )
+        ",
+        ".validate": "
+          newData.hasChildren(['name', 'price', 'sellerId', 'shortDescription', 'location']) &&
+          newData.child('name').isString() &&
+          newData.child('name').val().length > 0 &&
+          newData.child('price').isNumber() &&
+          newData.child('price').val() > 0 &&
+          newData.child('sellerId').val() == auth.uid &&
+          newData.child('shortDescription').isString() &&
+          newData.child('shortDescription').val().length > 0 &&
+          newData.child('location').isString() &&
+          newData.child('location').val().length > 0 &&
+          (newData.child('imageUrl').isString() || !newData.hasChild('imageUrl'))
+        ",
+        "name": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "price": { ".validate": "newData.isNumber() && newData.val() > 0" },
+        "sellerId": { ".validate": "newData.val() == auth.uid" },
+        "shortDescription": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "location": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "imageUrl": { ".validate": "newData.isString() || !newData.exists()" },
+        "createdAt": { ".validate": "newData.isNumber() || newData.isString()" }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}
