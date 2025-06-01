@@ -1,70 +1,56 @@
-# Getting Started with Create React App
+# 🌱 Ankurit – Connecting Farmers & Nurseries
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Ankurit is a platform designed to empower **farmers** and **nursery owners** by enabling them to **list, showcase, and connect** over agricultural products. We aim to bridge the gap between local growers and buyers with a simple, transparent, and trust-based system.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Features
 
-### `npm start`
+- 📱 **Mobile-friendly UI** for easy access on the go
+- 🌿 Profile pages for farmers and nurseries
+- 🛍️ Product listings with images, descriptions, and categories
+- 📞 Direct call integration for easy negotiation
+- 📲 WhatsApp & SMS notifications
+- 🔐 OTP login via Authgear with Firebase authentication
+- 💬 Reviews and stats to build trust
+- 🎯 Affordable listing plans with optional boosts
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🧑‍💻 Tech Stack
 
-### `npm test`
+| Frontend        | Backend          | Other Integrations          |
+|-----------------|------------------|-----------------------------|
+| React.js        | Node.js (Express) | Firebase (Firestore & Auth) |
+| Tailwind CSS    | Authgear (OTP)   | WhatsApp API (notifications) |
+| React Router    | Firestore DB     | SMS Gateway (e.g. Fast2SMS) |
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🌐 Live Demo
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Coming Soon! Stay tuned...
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🏗️ Installation & Setup
 
-### `npm run eject`
+```bash
+# 1. Clone the repository
+git clone https://github.com/monkonthehill/ankurit2.0.git
+cd ankurit
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# 2. Install frontend dependencies
+cd client
+npm install
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# 3. Install backend dependencies
+cd ../server
+npm install
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# 4. Setup environment variables (.env files)
+# Firebase, Authgear, WhatsApp API, etc.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+# 5. Start both servers
+# Example with concurrently (adjust to your setup)
+npm run dev
