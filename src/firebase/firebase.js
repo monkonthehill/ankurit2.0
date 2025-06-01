@@ -3,7 +3,7 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
+  signOut as firebaseSignOut,  // Import with alias
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
@@ -13,8 +13,19 @@ import {
   getFirestore,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  orderBy,
+  limit,
+  addDoc,
+  serverTimestamp
 } from "firebase/firestore";
+import { getDatabase, ref, query as rtdbQuery, orderByChild, equalTo, get, remove } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -30,6 +41,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const database = getDatabase(app);
 
 // Authentication functions
 const signUp = async (email, password, displayName) => {
@@ -39,7 +51,10 @@ const signUp = async (email, password, displayName) => {
     await setDoc(doc(db, "users", userCredential.user.uid), {
       displayName,
       email,
-      createdAt: new Date()
+      createdAt: new Date(),
+      profilePhotoUrl: "",
+      coverPhotoUrl: "",
+      name: displayName
     });
     return userCredential.user;
   } catch (error) {
@@ -67,6 +82,9 @@ const signInWithGoogle = async () => {
         displayName: result.user.displayName,
         email: result.user.email,
         photoURL: result.user.photoURL,
+        profilePhotoUrl: result.user.photoURL || "",
+        coverPhotoUrl: "",
+        name: result.user.displayName,
         createdAt: new Date()
       });
     }
@@ -78,7 +96,7 @@ const signInWithGoogle = async () => {
 
 const logout = async () => {
   try {
-    await signOut(auth);
+    await firebaseSignOut(auth);  // Use the aliased import
   } catch (error) {
     throw error;
   }
@@ -88,15 +106,33 @@ const logout = async () => {
 export {
   auth,
   db,
+  database,
   onAuthStateChanged,
   signUp,
   signIn,
   signInWithGoogle,
   logout,
-  GoogleAuthProvider,
-  signInWithPopup,
+  deleteDoc,
+  // Firestore functions
   doc,
-  setDoc
+  setDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  orderBy,
+  limit,
+  addDoc,
+  serverTimestamp,
+  // Realtime Database functions
+  ref,
+  rtdbQuery,
+  orderByChild,
+  equalTo,
+  get,
+  remove
 };
 
 export default app;

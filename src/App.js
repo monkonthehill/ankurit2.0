@@ -9,16 +9,16 @@ import AuthPage from './pages/Auth/AuthPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import ProfileSetupPage from './pages/Profile/ProfileSetupPage';
 import ProductsPage from './pages/Products/ProductsPage';
+import SearchPage from './components/Homepage/SearchPage';
 import './App.css';
 
-// Get config with fallbacks
+
 const imageKitConfig = {
   urlEndpoint: process.env.REACT_APP_IMAGEKIT_URL || 'https://ik.imagekit.io/ankurit/',
   publicKey: process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY || 'public_3Pd8+8b9G0fq9ZWATOe4pmquWyI=',
   authenticationEndpoint: process.env.REACT_APP_IMAGEKIT_AUTH_ENDPOINT || 'https://imagekit-auth-server-ib8y.onrender.com'
 };
 
-// Validate config
 if (!imageKitConfig.urlEndpoint) {
   throw new Error('ImageKit urlEndpoint is required');
 }
@@ -36,6 +36,14 @@ function App() {
           <Routes>
             <Route path="/" element={<Homepage />} />
             <Route
+              path="/search"
+              element={
+                <AuthChecker requireAuth={false}>
+                  <SearchPage />
+                </AuthChecker>
+              }
+            />
+            <Route
               path="/auth"
               element={
                 <AuthChecker requireAuth={false}>
@@ -51,6 +59,14 @@ function App() {
                 </AuthChecker>
               }
             />
+              <Route
+    path="/farmer/:userId"
+    element={
+      <AuthChecker requireAuth={false}>
+        <ProfilePage />
+      </AuthChecker>
+    }
+  />
             <Route
               path="/profile-setup"
               element={
