@@ -4,24 +4,25 @@ import {
   Sparkles, Compass, Leaf, Shield, HelpCircle, ShoppingCart 
 } from "lucide-react";
 import logo from "./logo.png";
+import { useUser } from "../firebase/UserProvider";
+import { useLocation, useNavigate } from "react-router-dom";
 import './Navbar.css';
-import { useUser } from "../firebase/UserProvider"; // Adjust the import path as needed
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchPlaceholder, setSearchPlaceholder] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const { user } = useUser();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const placeholders = [
-    "Search for plants... ",
-    "Find local nurseries... ",
-    "Look for gardening tools... ",
-    "Discover seasonal flowers... "
-  ];
+  // Check if current route is home or products
+  useEffect(() => {
+    const path = location.pathname;
+    setShowMobileSearch(path === '/' || path.includes('/products'));
+  }, [location]);
 
-  // Cycle through placeholders
+  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
       const isScrolled = window.scrollY > 10;
@@ -29,46 +30,42 @@ const Navbar = () => {
         setScrolled(isScrolled);
       }
     };
-    const interval = setInterval(() => {
-      setSearchPlaceholder((prev) => (prev + 1) % placeholders.length);
-    }, 3000);
 
-    return () => clearInterval(interval);
-  }, []);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
 
   return (
     <>
       {/* Mobile Header */}
       <header className="mobile-header">
-        {/* Centered Logo */}
-        <div className="mobile-logo-container">
-          <a href="/">
-            <img src={logo} alt="Ankurit Logo" className="logo" />
-          </a>
-        </div>
+        <div className="mobile-header-container">
+          <div className="mobile-logo-container">
+            <a href="/">
+              <img src={logo} alt="Ankurit Logo" className="logo" />
+            </a>
+          </div>
 
-        {/* Search Bar */}
-        <div className="mobile-search-container">
-          <Search size={18} className="search-icon" />
-          <input 
-            type="text" 
-            placeholder={placeholders[searchPlaceholder]} 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          {showMobileSearch && (
+            <button 
+              className="mobile-search-icon-button"
+              onClick={() => navigate('/search')}
+              aria-label="Search"
+            >
+              <Search size={20} className="search-icon" />
+            </button>
+          )}
         </div>
       </header>
 
       {/* Desktop Navbar */}
-      <header className="desktop-navbar">
-        {/* Logo */}
+      <header className={`desktop-navbar ${scrolled ? 'scrolled' : ''}`}>
         <div className="logo-container">
           <a href="/">
             <img src={logo} alt="Ankurit Logo" className="logo" />
           </a>
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="desktop-nav">
           <ul>
             <li>
@@ -98,18 +95,15 @@ const Navbar = () => {
           </ul>
         </nav>
 
-        {/* Search and User Actions */}
         <div className="search-user-container">
-          <div className="search-container">
-            <Search size={16} className="search-icon" />
-            <input 
-              type="text" 
-              placeholder={placeholders[searchPlaceholder]} 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
+          <button 
+            className="search-button"
+            onClick={() => navigate('/search')}
+            aria-label="Search"
+          >
+            <Search size={20} className="search-icon" />
+          </button>
+        
           {user ? (
             <a href="/profile" className="user-profile">
               {user.photoURL ? (
@@ -140,10 +134,10 @@ const Navbar = () => {
           <span>Products</span>
         </a>
 
-        {/* Centered Menu Button */}
         <button 
           className="mobile-nav-item menu-button"
           onClick={() => setIsOpen(!isOpen)}
+          aria-label="Menu"
         >
           {isOpen ? (
             <X size={24} className="menu-icon" />
@@ -160,7 +154,6 @@ const Navbar = () => {
           <span>Plans</span>
         </a>
 
-        {/* Login Button in Bottom Right */}
         {user ? (
           <a href="/profile" className="mobile-nav-item login-nav-item">
             {user.photoURL ? (
@@ -204,56 +197,45 @@ const Navbar = () => {
             <button 
               className="close-button"
               onClick={() => setIsOpen(false)}
+              aria-label="Close menu"
             >
               <X size={24} />
             </button>
           </div>
           
-          <div className="mobile-search-wrapper">
-            <div className="mobile-search-container">
-              <Search size={18} className="search-icon" />
-              <input 
-                type="text" 
-                placeholder={placeholders[searchPlaceholder]} 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          
           <ul className="mobile-menu-links">
             <li>
-              <a href="/">
+              <a href="/" onClick={() => setIsOpen(false)}>
                 <Home size={18} className="link-icon" />
                 <span>Home</span>
               </a>
             </li>
             <li>
-              <a href="/products">
+              <a href="/products" onClick={() => setIsOpen(false)}>
                 <ShoppingBasket size={18} className="link-icon" />
                 <span>Products</span>
               </a>
             </li>
             <li>
-              <a href="/explore">
+              <a href="/explore" onClick={() => setIsOpen(false)}>
                 <Compass size={18} className="link-icon" />
                 <span>Explore</span>
               </a>
             </li>
             <li>
-              <a href="/plans">
+              <a href="/plans" onClick={() => setIsOpen(false)}>
                 <Sparkles size={18} className="link-icon" />
                 <span>Premium Plans</span>
               </a>
             </li>
             <li>
-              <a href="/support">
+              <a href="/support" onClick={() => setIsOpen(false)}>
                 <HelpCircle size={18} className="link-icon" />
                 <span>Support</span>
               </a>
             </li>
             <li>
-              <a href="/gardening-tips">
+              <a href="/gardening-tips" onClick={() => setIsOpen(false)}>
                 <Leaf size={18} className="link-icon" />
                 <span>Gardening Tips</span>
               </a>
