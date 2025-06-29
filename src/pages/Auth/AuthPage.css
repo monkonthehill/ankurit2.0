@@ -1,165 +1,201 @@
-/* AuthPage.css */
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-  padding: 20px;
+/* Define theme variables for quick adjustments */
+:root {
+  --primary-color: #43A047;         /* Vibrant green for buttons */
+  --primary-hover: #388E3C;         /* Darker green on hover */
+  --secondary-color: #2E7D32;       /* Rich green for headings and accents */
+  --background-overlay: rgba(255, 255, 255, 0.9); /* Translucent background */
+  --text-color: #333;               /* General text color */
+  --border-radius: 10px;
+  --font-heading: 'Merriweather', serif; /* Suggest importing in your HTML */
+  --font-body: 'Roboto', sans-serif;       /* Suggest importing in your HTML */
 }
 
-.auth-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 40px;
-  width: 100%;
-  max-width: 400px;
+/* Reset and basic styling */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-.auth-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: #333;
-  text-align: center;
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--text-color);
+  background: #fafafa;
 }
 
-.auth-form {
+/* Full-page container with a custom agriculture-themed background */
+.auth-container {
+  min-height: 100vh;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  background: url('/public//pictures/market.png') no-repeat center center fixed;
+  background-size: cover;
+  padding: 20px;
+}
+
+/* The translucent, blurred auth card */
+.auth-card {
+  background: var(--background-overlay);
+  padding: 2.5rem;
+  border-radius: var(--border-radius);
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  animation: slideIn 0.7s ease-out both;
+  position: relative;
+}
+
+/* Heading styles with organic typography */
+.auth-card h2 {
+  margin: 0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-family: var(--font-heading);
+  color: var(--secondary-color);
+  font-size: 2rem;
+  letter-spacing: 0.5px;
+}
+
+/* Form styling */
+.auth-card form {
+  margin-top: 1rem;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-size: 14px;
-  color: #555;
+  margin-bottom: 1.25rem;
 }
 
 .form-group input {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border 0.2s;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .form-group input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.2);
   outline: none;
-  border-color: #4285f4;
+}
+
+/* Button styling for primary actions and Google sign-in */
+.auth-button,
+.google-button {
+  width: 100%;
+  padding: 0.85rem;
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.3s ease;
 }
 
 .auth-button {
-  background-color: #4285f4;
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 8px;
+  background-color: var(--primary-color);
+  color: #fff;
 }
 
 .auth-button:hover {
-  background-color: #3367d6;
+  background-color: var(--primary-hover);
+  transform: translateY(-3px);
 }
 
-.auth-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
+/* Divider to separate traditional auth from social login */
 .divider {
-  display: flex;
-  align-items: center;
-  margin: 20px 0;
+  text-align: center;
+  margin: 1.5rem 0;
+  position: relative;
+  font-size: 0.95rem;
   color: #777;
-  font-size: 14px;
 }
 
 .divider::before,
 .divider::after {
   content: "";
-  flex: 1;
-  border-bottom: 1px solid #ddd;
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: #ccc;
 }
 
 .divider::before {
-  margin-right: 16px;
+  left: 0;
 }
 
 .divider::after {
-  margin-left: 16px;
+  right: 0;
 }
 
+/* Styling Google sign-in button */
 .google-button {
+  background-color: #DB4437;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  width: 100%;
-  background-color: white;
-  color: #555;
-  border: 1px solid #ddd;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  color: #fff;
 }
 
 .google-button:hover {
-  background-color: #f5f5f5;
+  background-color: #C33D2F;
+  transform: translateY(-3px);
 }
 
 .google-button img {
-  width: 20px;
-  height: 20px;
+  height: 24px;
+  margin-right: 8px;
 }
 
-.toggle-auth {
+/* Toggle link styling for switching between forms */
+.auth-toggle {
   text-align: center;
-  margin-top: 20px;
-  color: #666;
-  font-size: 14px;
+  margin-top: 1rem;
+  font-size: 0.95rem;
 }
 
-.toggle-button {
-  background: none;
-  border: none;
-  color: #4285f4;
+.toggle-link {
+  color: var(--secondary-color);
+  font-weight: 600;
   cursor: pointer;
-  font-size: 14px;
-  padding: 0;
+  transition: color 0.3s;
+}
+
+.toggle-link:hover {
   text-decoration: underline;
+  color: var(--primary-color);
 }
 
-.error-message {
-  color: #d32f2f;
-  background-color: #fce8e6;
-  padding: 10px;
-  border-radius: 4px;
-  font-size: 14px;
-  margin-bottom: 10px;
+/* Slide-in animation for the auth card */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Responsive adjustments */
+/* Responsive design: Adjustments for smaller screens */
 @media (max-width: 480px) {
   .auth-card {
-    padding: 30px 20px;
+    padding: 1.75rem;
   }
   
-  .auth-title {
-    font-size: 20px;
+  .auth-card h2 {
+    font-size: 1.8rem;
+  }
+  
+  .auth-button,
+  .google-button {
+    font-size: 1rem;
+    padding: 0.75rem;
   }
 }

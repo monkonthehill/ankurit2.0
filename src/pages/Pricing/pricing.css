@@ -1,0 +1,481 @@
+/* Global Styles */
+:root {
+  --primary: #3D9970;
+  --accent: #F4B400;
+  --background: #F9F9F9;
+  --text: #333333;
+  --light-gray: #f0f0f0;
+  --gray: #e0e0e0;
+  --dark-gray: #888;
+  --white: #ffffff;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s ease;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background);
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+/* Pricing Page Styles */
+.pricing-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.hero-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.hero-section h1 {
+  font-size: 2.5rem;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.hero-section p {
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Billing Toggle */
+.billing-toggle {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  background: var(--white);
+  border-radius: 50px;
+  padding: 0.3rem;
+  width: 250px;
+  margin: 2rem auto;
+  box-shadow: var(--shadow);
+}
+
+.billing-toggle button {
+  border: none;
+  background: transparent;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  z-index: 1;
+  transition: var(--transition);
+  border-radius: 50px;
+}
+
+.billing-toggle button.active {
+  color: var(--white);
+}
+
+.billing-toggle .slider {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.3rem;
+  width: 120px;
+  height: calc(100% - 0.6rem);
+  background: var(--primary);
+  border-radius: 50px;
+  transition: var(--transition);
+}
+
+.billing-toggle .slider.yearly {
+  transform: translateX(120px);
+}
+
+/* Pricing Cards */
+.pricing-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.pricing-card {
+  background: var(--white);
+  border-radius: 10px;
+  padding: 2rem;
+  width: 300px;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  position: relative;
+  text-align: center;
+}
+
+.pricing-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.pricing-card.featured {
+  border: 2px solid var(--accent);
+  transform: scale(1.05);
+}
+
+.pricing-card.featured:hover {
+  transform: scale(1.05) translateY(-10px);
+}
+
+.pricing-card.current-plan {
+  border: 2px solid var(--primary);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -15px;
+  right: 20px;
+  background: var(--accent);
+  color: var(--text);
+  padding: 0.3rem 1rem;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.pricing-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+
+.pricing-card .price {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin: 1.5rem 0;
+  color: var(--text);
+}
+
+.pricing-card .price span {
+  font-size: 1rem;
+  color: var(--dark-gray);
+  font-weight: normal;
+}
+
+.pricing-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0;
+  text-align: left;
+}
+
+.pricing-card ul li {
+  margin-bottom: 0.8rem;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.pricing-card ul li:before {
+  content: '✓';
+  color: var(--primary);
+  position: absolute;
+  left: 0;
+}
+
+.pricing-card button {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 50px;
+  background: var(--primary);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 1rem;
+}
+
+.pricing-card button:hover {
+  background: #2e7d5a;
+}
+
+.pricing-card .current-button {
+  background: var(--gray);
+  color: var(--dark-gray);
+  cursor: not-allowed;
+}
+
+/* Feature Table */
+.feature-table {
+  margin: 4rem 0;
+}
+
+.feature-table h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--primary);
+}
+
+.feature-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.feature-table th, .feature-table td {
+  padding: 1rem;
+  text-align: center;
+  border-bottom: 1px solid var(--gray);
+}
+
+.feature-table th {
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+.feature-table tr:nth-child(even) {
+  background: var(--light-gray);
+}
+
+.feature-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* FAQ Section */
+.faq-section {
+  margin: 4rem 0;
+}
+
+.faq-section h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--primary);
+}
+
+.faq-item {
+  background: var(--white);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.faq-item h3 {
+  color: var(--primary);
+  margin-top: 0;
+}
+
+/* CTA Section */
+.cta-section {
+  text-align: center;
+  margin: 4rem 0;
+  padding: 3rem 0;
+  background: var(--primary);
+  color: white;
+  border-radius: 10px;
+}
+
+.cta-section h2 {
+  margin-bottom: 2rem;
+}
+
+.cta-button {
+  padding: 1rem 2rem;
+  background: var(--accent);
+  color: var(--text);
+  border: none;
+  border-radius: 50px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.cta-button:hover {
+  background: #e0a800;
+  transform: scale(1.05);
+}
+/* Plan Expiry Banner */
+.plan-expiry-banner {
+  background: var(--accent);
+  color: var(--text);
+  padding: 1rem;
+  text-align: center;
+  font-weight: bold;
+  border-radius: 5px;
+  margin: 1rem auto;
+  max-width: 600px;
+  box-shadow: var(--shadow);
+  animation: fadeIn 0.5s ease;
+}
+
+/* Purchase Popup */
+.purchase-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.popup-content {
+  background: var(--white);
+  padding: 2rem;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  animation: popIn 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.popup-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.popup-content h3 {
+  color: var(--primary);
+  margin-top: 0;
+}
+
+.plan-details {
+  background: var(--light-gray);
+  padding: 1rem;
+  border-radius: 5px;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.plan-details p {
+  margin: 0.5rem 0;
+}
+
+.popup-button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 50px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 1rem;
+}
+
+.popup-button:hover {
+  background: #2e7d5a;
+  transform: scale(1.05);
+}
+
+.close-popup {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--dark-gray);
+  transition: var(--transition);
+}
+
+.close-popup:hover {
+  color: var(--text);
+  transform: scale(1.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .plan-expiry-banner {
+    font-size: 0.9rem;
+    padding: 0.8rem;
+  }
+  
+  .popup-content {
+    padding: 1.5rem;
+  }
+}
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .pricing-cards {
+    gap: 1.5rem;
+  }
+  
+  .pricing-card {
+    width: 280px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pricing-cards {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .pricing-card {
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .pricing-card.featured {
+    transform: scale(1);
+  }
+  
+  .pricing-card.featured:hover {
+    transform: translateY(-10px);
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-section h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-section p {
+    font-size: 1rem;
+  }
+  
+  .feature-table {
+    overflow-x: auto;
+  }
+  
+  .feature-table table {
+    min-width: 500px;
+  }
+}

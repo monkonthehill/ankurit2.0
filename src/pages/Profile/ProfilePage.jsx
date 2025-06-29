@@ -4,706 +4,759 @@ import {
   auth,
   db,
   database,
-  doc,
-  getDoc,
-  ref,
-  get,
-  query as firestoreQuery,
-  where,
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
+  ref, 
+  get, 
+  remove,
+  onAuthStateChanged,
+  query as rtdbQuery,
   orderByChild,
   equalTo,
-  query as rtdbQuery,
-  serverTimestamp,
-  logout,
-  remove,
-  deleteDoc
+  logout
 } from '../../firebase/firebase';
+import { FiMessageSquare } from 'react-icons/fi';
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  query as firestoreQuery,
+  where,
+  getDocs
+} from 'firebase/firestore';
+import placeholderUser from '../../assets/images/images.jpeg';
+import placeholderCover from '../../assets/images/images.jpeg';
+import placeholderProduct from '../../assets/images/cute-leaf-cartoon-illustration-removebg-preview.png';
 import { 
-  FaStar, 
-  FaWhatsapp, 
-  FaPhone, 
-  FaMapMarkerAlt, 
-  FaEnvelope, 
-  FaUserCheck, 
-  FaEdit,
-  FaThumbsUp,
-  FaThumbsDown,
-  FaTrash,
-  FaSignOutAlt
-} from 'react-icons/fa';
+  FiEdit, 
+  FiShare2, 
+  FiMoreVertical, 
+  FiInstagram, 
+  FiYoutube, 
+  FiUserPlus, 
+  FiUserCheck,
+  FiMail,
+  FiX
+} from 'react-icons/fi';
+import { FaCheck, FaRegCheckCircle, FaStar } from 'react-icons/fa';
+import { IoMdLogOut } from 'react-icons/io';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
-  const { userId: routeUserId } = useParams();
+  const { userId } = useParams();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
   const [products, setProducts] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [activeTab, setActiveTab] = useState('products');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [showFollowPopup, setShowFollowPopup] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
-    category: '',
-    sort: 'newest',
-    availability: 'all'
-  });
-  const [newReview, setNewReview] = useState({
-    rating: 5,
-    comment: '',
-    title: ''
-  });
+  const [showFollowersPopup, setShowFollowersPopup] = useState(false);
+  const [showFollowingPopup, setShowFollowingPopup] = useState(false);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [showReportPopup, setShowReportPopup] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
 
-  // Get user ID directly from Firebase auth
-  const currentUserId = auth.currentUser?.uid;
-  const profileUserId = routeUserId || currentUserId;
-  const isPersonalProfile = !routeUserId;
+  const fetchUserData = async (uid) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setProfileUser({ 
+          id: uid,
+          name: userData.name || userData.displayName || 'User',
+          profilePhotoUrl: userData.profilePhoto || placeholderUser,
+          coverPhotoUrl: userData.coverPhoto || placeholderCover,
+          bio: userData.bio || '',
+          businessName: userData.businessName,
+          location: userData.location,
+          gstNumber: userData.gstNumber,
+          plan: userData.plan,
+          planData: userData.planData,
+          sellerVerified: userData.sellerVerified || false,
+          instagram: userData.instagram,
+          youtube: userData.youtube
+        });
 
-  console.log('Current User ID:', currentUserId);
-  console.log('Profile User ID:', profileUserId);
+        // Get follower counts and lists
+        await fetchFollowData(uid);
+      } else {
+        const userRef = ref(database, `users/${uid}`);
+        const snapshot = await get(userRef);
+        
+        if (snapshot.exists()) {
+          setProfileUser({ 
+            id: uid,
+            ...snapshot.val(),
+            profilePhotoUrl: snapshot.val().profilePhoto || placeholderUser,
+            coverPhotoUrl: snapshot.val().coverPhoto || placeholderCover
+          });
+        } else {
+          setProfileUser({
+            id: uid,
+            name: 'User',
+            profilePhotoUrl: placeholderUser,
+            coverPhotoUrl: placeholderCover
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      setProfileUser({
+        id: uid,
+        name: 'User',
+        profilePhotoUrl: placeholderUser,
+        coverPhotoUrl: placeholderCover
+      });
+    }
+  };
 
-  const getImageUrl = (path) => {
-    if (!path || typeof path !== 'string') return null;
-    const cleanPath = path.trim().replace(/^\//, '');
-    return cleanPath ? `https://ik.imagekit.io/ankurit/${cleanPath}` : null;
+  const fetchFollowData = async (uid) => {
+    try {
+      // Get follower count and list
+      const followersQuery = firestoreQuery(
+        collection(db, 'users', uid, 'followers')
+      );
+      const followersSnapshot = await getDocs(followersQuery);
+      setFollowerCount(followersSnapshot.size);
+      
+      // Get following count and list
+      const followingQuery = firestoreQuery(
+        collection(db, 'users', uid, 'following')
+      );
+      const followingSnapshot = await getDocs(followingQuery);
+      setFollowingCount(followingSnapshot.size);
+
+      // Only fetch detailed user data if popup is open
+      if (showFollowersPopup || showFollowingPopup) {
+        const followers = [];
+        const following = [];
+        
+        // Get detailed follower data
+        for (const followerDoc of followersSnapshot.docs) {
+          const userDoc = await getDoc(doc(db, 'users', followerDoc.id));
+          if (userDoc.exists()) {
+            followers.push({
+              id: followerDoc.id,
+              ...userDoc.data()
+            });
+          }
+        }
+        
+        // Get detailed following data
+        for (const followingDoc of followingSnapshot.docs) {
+          const userDoc = await getDoc(doc(db, 'users', followingDoc.id));
+          if (userDoc.exists()) {
+            following.push({
+              id: followingDoc.id,
+              ...userDoc.data()
+            });
+          }
+        }
+        
+        setFollowersList(followers);
+        setFollowingList(following);
+      }
+    } catch (error) {
+      console.error("Error fetching follow data", error);
+    }
+  };
+
+const fetchProducts = async (sellerId) => {
+  try {
+    console.log("Fetching products for seller:", sellerId); // Debug log
+    
+    // Try Realtime Database first
+    const productsRef = ref(database, 'products');
+    const snapshot = await get(productsRef);
+
+    if (snapshot.exists()) {
+      const productsData = snapshot.val();
+      const productsArray = [];
+      
+      // Convert object to array and filter by sellerId
+      for (const productId in productsData) {
+        const product = productsData[productId];
+        if (product.sellerId === sellerId) {
+          productsArray.push({
+            id: productId,
+            ...product
+          });
+        }
+      }
+      
+      console.log("Fetched products:", productsArray); // Debug log
+      setProducts(productsArray);
+    } else {
+      console.log("No products found in RTDB");
+      setProducts([]);
+    }
+  } catch (error) {
+    console.error("Error fetching products from RTDB:", error);
+    setProducts([]);
+  }
+};
+
+  const checkFollowStatus = async (currentUserId, profileUserId) => {
+    try {
+      const followDoc = await getDoc(
+        doc(db, 'users', profileUserId, 'followers', currentUserId)
+      );
+      setIsFollowing(followDoc.exists());
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        // Unfollow
+        await deleteDoc(
+          doc(db, 'users', userId, 'followers', currentUser.uid)
+        );
+        await deleteDoc(
+          doc(db, 'users', currentUser.uid, 'following', userId)
+        );
+        setFollowerCount(prev => prev - 1);
+      } else {
+        // Follow
+        await setDoc(
+          doc(db, 'users', userId, 'followers', currentUser.uid),
+          { timestamp: new Date() }
+        );
+        await setDoc(
+          doc(db, 'users', currentUser.uid, 'following', userId),
+          { timestamp: new Date() }
+        );
+        setFollowerCount(prev => prev + 1);
+
+        // Create notification
+        await setDoc(doc(collection(db, 'notifications')), {
+          userId: userId,
+          type: 'follow',
+          fromUserId: currentUser.uid,
+          fromUserName: currentUser.displayName || currentUser.email,
+          read: false,
+          timestamp: new Date()
+        });
+      }
+      setIsFollowing(!isFollowing);
+      setShowFollowPopup(true);
+      setTimeout(() => setShowFollowPopup(false), 2000);
+      await fetchFollowData(userId);
+    } catch (error) {
+      console.error("Error updating follow status:", error);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        // Delete from Firestore if exists
+        try {
+          await deleteDoc(doc(db, 'products', productId));
+        } catch (firestoreError) {
+          console.log("No Firestore product to delete");
+        }
+        
+        // Delete from Realtime Database
+        await remove(ref(database, `products/${productId}`));
+        
+        setProducts(products.filter(product => product.id !== productId));
+      } catch (error) {
+        console.error("Error deleting product:", error);
+      }
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
+  const handleReportUser = async () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    if (!reportReason || reportDescription.length < 10) {
+      alert('Please select a reason and provide a detailed description (at least 10 characters)');
+      return;
+    }
+
+    try {
+      await setDoc(doc(collection(db, 'reports')), {
+        reporterId: currentUser.uid,
+        reportedUserId: userId,
+        reason: reportReason,
+        description: reportDescription,
+        status: 'pending',
+        timestamp: new Date()
+      });
+
+      alert('Thank you for your report. We will review it shortly.');
+      setShowReportPopup(false);
+      setReportReason('');
+      setReportDescription('');
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      alert('Failed to submit report. Please try again.');
+    }
   };
 
   useEffect(() => {
-    if (!profileUserId && isPersonalProfile) {
-      navigate('/auth');
-      return;
-    }
-
-    if (!profileUserId) return;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // 1. Fetch profile data
-        const profileRef = doc(db, 'users', profileUserId);
-        const profileSnap = await getDoc(profileRef);
-        
-        if (!profileSnap.exists()) {
-          throw new Error('Profile not found');
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        const profileId = userId || user.uid;
+        await fetchUserData(profileId);
+        await fetchProducts(profileId);
+        if (userId && userId !== user.uid) {
+          await checkFollowStatus(user.uid, userId);
         }
-        
-        const profileData = profileSnap.data();
-        setProfile({
-          ...profileData,
-          coverPhotoUrl: getImageUrl(profileData.coverPhotoUrl),
-          profilePhotoUrl: getImageUrl(profileData.profilePhotoUrl)
-        });
-
-        // 2. Fetch products
-        const productsRef = ref(database, 'products');
-        const productsQuery = rtdbQuery(
-          productsRef,
-          orderByChild('sellerId'),
-          equalTo(profileUserId)
-        );
-        
-        const productsSnapshot = await get(productsQuery);
-        const productsData = productsSnapshot.exists() 
-          ? Object.entries(productsSnapshot.val()).map(([id, data]) => ({
-              id,
-              ...data,
-              imageUrl: getImageUrl(data?.imageUrl)
-            }))
-          : [];
-        setProducts(productsData);
-
-        // 3. Fetch reviews
-        const reviewsQuery = firestoreQuery(
-          collection(db, 'reviews'),
-          where('farmerId', '==', profileUserId)
-        );
-        const reviewsSnap = await getDocs(reviewsQuery);
-        setReviews(reviewsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate()
-        })));
-
-      } catch (err) {
-        console.error('Error loading profile:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      } else if (userId) {
+        await fetchUserData(userId);
+        await fetchProducts(userId);
+      } else {
+        navigate('/login');
       }
-    };
+      setLoading(false);
+    });
 
-    fetchData();
-  }, [profileUserId, navigate, isPersonalProfile]);
+    return () => unsubscribeAuth();
+  }, [userId, navigate]);
 
-  // Calculate average rating
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-    : 0;
+  useEffect(() => {
+    if (showFollowersPopup || showFollowingPopup) {
+      fetchFollowData(userId || currentUser?.uid);
+    }
+  }, [showFollowersPopup, showFollowingPopup]);
 
-  // Filter and sort products
-  const filteredProducts = products.filter(product => {
+  const renderPlanBadge = () => {
+    if (!profileUser?.plan) return null;
+    
     return (
-      (filters.category === '' || product?.category === filters.category) &&
-      (filters.availability === 'all' || 
-       (filters.availability === 'inStock' && product?.stock > 0) ||
-       (filters.availability === 'outOfStock' && product?.stock <= 0))
+      <span className={`plan-badge ${profileUser.plan === 'golden' ? 'golden' : 'basic'}`}>
+        {profileUser.plan === 'golden' ? (
+          <FaStar style={{ color: 'gold' }} />
+        ) : (
+          <FaCheck />
+        )}
+      </span>
     );
-  }).sort((a, b) => {
-    const aPrice = a?.price || 0;
-    const bPrice = b?.price || 0;
-    const aRating = a?.rating || 0;
-    const bRating = b?.rating || 0;
-    const aCreated = a?.createdAt || 0;
-    const bCreated = b?.createdAt || 0;
-
-    if (filters.sort === 'priceLow') return aPrice - bPrice;
-    if (filters.sort === 'priceHigh') return bPrice - aPrice;
-    if (filters.sort === 'popular') return bRating - aRating;
-    return bCreated - aCreated;
-  });
-
-  // Handle product deletion
-  const handleDeleteProduct = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await remove(ref(database, `products/${productId}`));
-        setProducts(products.filter(p => p.id !== productId));
-      } catch (error) {
-        console.error('Error deleting product:', error);
-      }
-    }
-  };
-
-  // Handle review submission
-  const handleReviewSubmit = async (e) => {
-    e.preventDefault();
-    if (!currentUserId) {
-      alert('Please login to submit a review');
-      return;
-    }
-
-    try {
-      const reviewData = {
-        ...newReview,
-        farmerId: profileUserId,
-        reviewerId: currentUserId,
-        reviewerName: auth.currentUser.displayName || 'Anonymous',
-        reviewerPhoto: auth.currentUser.photoURL || '',
-        createdAt: serverTimestamp(),
-        likes: [],
-        dislikes: [],
-        helpfulCount: 0
-      };
-
-      const docRef = await addDoc(collection(db, 'reviews'), reviewData);
-      setReviews([...reviews, { 
-        id: docRef.id, 
-        ...reviewData,
-        createdAt: new Date() 
-      }]);
-      setNewReview({ rating: 5, comment: '', title: '' });
-    } catch (error) {
-      console.error('Error submitting review:', error);
-    }
-  };
-
-  // Handle review reactions
-  const handleReaction = async (reviewId, reactionType) => {
-    if (!currentUserId) {
-      alert('Please login to react to reviews');
-      return;
-    }
-
-    try {
-      const reviewRef = doc(db, 'reviews', reviewId);
-      const review = reviews.find(r => r.id === reviewId);
-      
-      if (reactionType === 'like') {
-        if (review.likes?.includes(currentUserId)) {
-          await updateDoc(reviewRef, {
-            likes: review.likes.filter(id => id !== currentUserId),
-            helpfulCount: review.helpfulCount > 0 ? review.helpfulCount - 1 : 0
-          });
-        } else {
-          await updateDoc(reviewRef, {
-            likes: [...(review.likes || []), currentUserId],
-            dislikes: (review.dislikes || []).filter(id => id !== currentUserId),
-            helpfulCount: review.helpfulCount + 1
-          });
-        }
-      } else if (reactionType === 'dislike') {
-        if (review.dislikes?.includes(currentUserId)) {
-          await updateDoc(reviewRef, {
-            dislikes: review.dislikes.filter(id => id !== currentUserId)
-          });
-        } else {
-          await updateDoc(reviewRef, {
-            dislikes: [...(review.dislikes || []), currentUserId],
-            likes: (review.likes || []).filter(id => id !== currentUserId),
-            helpfulCount: review.helpfulCount > 0 ? review.helpfulCount - 1 : 0
-          });
-        }
-      }
-
-      setReviews(reviews.map(r => {
-        if (r.id === reviewId) {
-          const updatedReview = { ...r };
-          if (reactionType === 'like') {
-            if (updatedReview.likes?.includes(currentUserId)) {
-              updatedReview.likes = updatedReview.likes.filter(id => id !== currentUserId);
-              updatedReview.helpfulCount = Math.max(0, updatedReview.helpfulCount - 1);
-            } else {
-              updatedReview.likes = [...(updatedReview.likes || []), currentUserId];
-              updatedReview.dislikes = (updatedReview.dislikes || []).filter(id => id !== currentUserId);
-              updatedReview.helpfulCount = updatedReview.helpfulCount + 1;
-            }
-          } else if (reactionType === 'dislike') {
-            if (updatedReview.dislikes?.includes(currentUserId)) {
-              updatedReview.dislikes = updatedReview.dislikes.filter(id => id !== currentUserId);
-            } else {
-              updatedReview.dislikes = [...(updatedReview.dislikes || []), currentUserId];
-              updatedReview.likes = (updatedReview.likes || []).filter(id => id !== currentUserId);
-              updatedReview.helpfulCount = Math.max(0, updatedReview.helpfulCount - 1);
-            }
-          }
-          return updatedReview;
-        }
-        return r;
-      }));
-    } catch (error) {
-      console.error('Error updating reaction:', error);
-    }
-  };
-
-  // Handle logout
-  const handleLogout = async () => {
-    try {
-      await logout(auth);
-      navigate('/');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
   };
 
   if (loading) {
     return (
-      <div className="loading-container">
+      <div className="loading-spinner">
         <div className="spinner"></div>
-        <p>Loading profile data...</p>
+        <p>Loading profile...</p>
       </div>
     );
   }
 
-  if (error) {
+  if (!profileUser) {
     return (
-      <div className="error-container">
-        <p>Error: {error}</p>
-        <button onClick={() => window.location.reload()}>Try Again</button>
+      <div className="not-found">
+        <h2>User not found</h2>
+        <p>The profile you're looking for doesn't exist or may have been removed.</p>
+        <Link to="/" className="btn btn-primary">Go Home</Link>
       </div>
     );
   }
 
-  if (!profile) {
-    return (
-      <div className="error-container">
-        <p>Profile not found</p>
-        <button onClick={() => navigate('/')}>Go Home</button>
-      </div>
-    );
-  }
+  const isOwnProfile = currentUser && currentUser.uid === (userId || currentUser.uid);
+  const getImageKitUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:image')) return url;
+    return `https://ik.imagekit.io/ankurit${url.startsWith('/') ? url : `/${url}`}`;
+  };
 
   return (
-    <div className="farmer-profile-container">
-      <header className="profile-header">
-        <div className="cover-photo-container">
-          {profile.coverPhotoUrl ? (
+    <div className="profile-container">
+      {/* Cover Photo */}
+      <div className="cover-photo-container">
+        <img 
+          src={getImageKitUrl(profileUser.coverPhotoUrl) || placeholderCover} 
+          alt="Cover" 
+          className="cover-photo"
+          onError={(e) => {
+            e.target.src = placeholderCover;
+          }}
+        />
+      </div>
+
+      {/* Profile Header */}
+      <div className="profile-header">
+        <div className="profile-info">
+          <div className="avatar-container">
             <img 
-              src={profile.coverPhotoUrl} 
-              alt="Cover" 
-              className="cover-photo"
-              onError={(e) => e.target.style.display = 'none'}
+              src={getImageKitUrl(profileUser.profilePhotoUrl) || placeholderUser} 
+              alt="Profile" 
+              className="profile-avatar"
+              onError={(e) => {
+                e.target.src = placeholderUser;
+              }}
             />
-          ) : (
-            <div className="cover-photo-placeholder">
-              {profile.name || 'User'}
-            </div>
-          )}
-          {isPersonalProfile && (
-            <>
-              <Link to="/profile-setup" className="edit-profile-button">
-                <FaEdit /> Edit Profile
-              </Link>
-              <button className="logout-button" onClick={handleLogout}>
-                <FaSignOutAlt /> Logout
-              </button>
-            </>
-          )}
-        </div>
-        
-        <div className="profile-info-container">
-          <div className="profile-photo-container">
-            {profile.profilePhotoUrl ? (
-              <img 
-                src={profile.profilePhotoUrl} 
-                alt="Profile"
-                className="profile-photo"
-                onError={(e) => e.target.style.display = 'none'}
-              />
-            ) : (
-              <div className="profile-photo-placeholder">
-                {profile.name?.charAt(0) || 'U'}
+            {profileUser.sellerVerified && (
+              <div className="verified-badge">
+                <FaRegCheckCircle />
               </div>
-            )}
-            {profile.isVerified && (
-              <span className="verification-badge">
-                <FaUserCheck />
-              </span>
             )}
           </div>
           
           <div className="profile-details">
-            <h1>{profile.name}</h1>
-            <div className="location">
-              <FaMapMarkerAlt /> {profile.location || 'Location not specified'}
+            <h1 className="profile-name">
+              {profileUser.name}
+              {renderPlanBadge()}
+            </h1>
+            
+            {profileUser.bio && <p className="profile-bio">{profileUser.bio}</p>}
+            
+            <div className="profile-stats">
+              <span>{products.length} Products</span>
+              <span>•</span>
+              <span 
+                className="clickable-stat"
+                onClick={() => setShowFollowersPopup(true)}
+              >
+                {followerCount} Followers
+              </span>
+              <span>•</span>
+              <span 
+                className="clickable-stat"
+                onClick={() => setShowFollowingPopup(true)}
+              >
+                {followingCount} Following
+              </span>
             </div>
             
-            {reviews.length > 0 && (
-              <div className="rating">
-                <div className="stars">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <FaStar 
-                      key={star} 
-                      className={star <= Math.round(averageRating) ? 'filled' : 'empty'} 
-                    />
-                  ))}
-                </div>
-                <span>({reviews.length} reviews)</span>
-              </div>
-            )}
-            
-            <div className="contact-buttons">
-              {profile.contact && (
-                <>
-                  <a href={`tel:${profile.contact}`} className="contact-button">
-                    <FaPhone /> Call
-                  </a>
-                  <a 
-                    href={`https://wa.me/${profile.contact}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="contact-button whatsapp"
-                  >
-                    <FaWhatsapp /> WhatsApp
-                  </a>
-                </>
+            <div className="social-links">
+              {profileUser.instagram && (
+                <a href={profileUser.instagram} target="_blank" rel="noopener noreferrer">
+                  <FiInstagram />
+                </a>
+              )}
+              {profileUser.youtube && (
+                <a href={profileUser.youtube} target="_blank" rel="noopener noreferrer">
+                  <FiYoutube />
+                </a>
+              )}
+              {!isOwnProfile && currentUser && (
+                <Link to={`/messages/${profileUser.id}`} className="message-link">
+                  <FiMail />
+                </Link>
               )}
             </div>
           </div>
         </div>
-      </header>
+<div className="profile-actions">
+  {isOwnProfile ? (
+    <>
+      <Link to="/profile_setup" className="btn btn-edit">
+        <FiEdit /> Edit Profile
+      </Link>
+      <Link to="/add-product" className="btn btn-primary">
+        Add Product
+      </Link>
+      {/* Updated to match your routes - Inbox button */}
+      <Link to="/messages" className="btn btn-chat">
+        <FiMessageSquare /> Inbox
+      </Link>
+      <button className="btn btn-logout" onClick={handleLogout}>
+        <IoMdLogOut /> Logout
+      </button>
+    </>
+  ) : (
+    <>
+      <button 
+        className={`btn ${isFollowing ? 'btn-following' : 'btn-follow'}`}
+        onClick={handleFollow}
+      >
+        {isFollowing ? <FiUserCheck /> : <FiUserPlus />}
+        {isFollowing ? 'Following' : 'Follow'}
+      </button>
+      {/* Updated to match your routes - Chat Now button */}
+      <Link 
+        to={`/messages/${profileUser.id}`} 
+        className="btn btn-chat"
+      >
+        <FiMessageSquare /> Chat Now
+      </Link>
+      <button className="btn btn-share">
+        <FiShare2 /> Share
+      </button>
+      <div className="more-options">
+        <button className="btn btn-more" onClick={() => setShowOptions(!showOptions)}>
+          <FiMoreVertical />
+        </button>
+        {showOptions && (
+          <div className="options-dropdown">
+            <button 
+              className="btn btn-report"
+              onClick={() => {
+                setShowOptions(false);
+                setShowReportPopup(true);
+              }}
+            >
+              Report User
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  )}
+        </div>
+      </div>
 
-      <main className="profile-main">
-        <nav className="profile-tabs">
-          <button 
-            className={activeTab === 'products' ? 'active' : ''}
-            onClick={() => setActiveTab('products')}
-          >
-            Products ({products.length})
-          </button>
-          <button 
-            className={activeTab === 'about' ? 'active' : ''}
-            onClick={() => setActiveTab('about')}
-          >
-            About
-          </button>
-          <button 
-            className={activeTab === 'reviews' ? 'active' : ''}
-            onClick={() => setActiveTab('reviews')}
-          >
-            Reviews ({reviews.length})
-          </button>
-        </nav>
-
-        {activeTab === 'products' && (
-          <div className="products-tab">
-            <div className="filters-desktop">
-              <div className="filter-group">
-                <label>Category</label>
-                <select 
-                  value={filters.category}
-                  onChange={(e) => setFilters({...filters, category: e.target.value})}
-                >
-                  <option value="">All Categories</option>
-                  <option value="plants">Plants</option>
-                  <option value="seeds">Seeds</option>
-                  <option value="tools">Tools & Equipment</option>
-                  <option value="fertilizers">Fertilizers</option>
-                </select>
-              </div>
-              
-              <div className="filter-group">
-                <label>Availability</label>
-                <select 
-                  value={filters.availability}
-                  onChange={(e) => setFilters({...filters, availability: e.target.value})}
-                >
-                  <option value="all">All</option>
-                  <option value="inStock">In Stock</option>
-                  <option value="outOfStock">Out of Stock</option>
-                </select>
-              </div>
-              
-              <div className="filter-group">
-                <label>Sort By</label>
-                <select 
-                  value={filters.sort}
-                  onChange={(e) => setFilters({...filters, sort: e.target.value})}
-                >
-                  <option value="newest">Newest</option>
-                  <option value="priceLow">Price: Low to High</option>
-                  <option value="priceHigh">Price: High to Low</option>
-                  <option value="popular">Most Popular</option>
-                </select>
-              </div>
+      {/* User Details Section */}
+      <div className="user-details-section">
+        <div className="details-card">
+          <h3>Seller Information</h3>
+          {profileUser.businessName && (
+            <div className="detail-item">
+              <strong>Business Name:</strong> {profileUser.businessName}
             </div>
+          )}
+          {profileUser.location && (
+            <div className="detail-item">
+              <strong>Location:</strong> {profileUser.location}
+            </div>
+          )}
+          {profileUser.gstNumber && (
+            <div className="detail-item">
+              <strong>GST Number:</strong> {profileUser.gstNumber}
+            </div>
+          )}
+          {profileUser.planData && (
+            <div className="detail-item">
+              <strong>Membership:</strong> {profileUser.planData.name}
+              {profileUser.planData.expiresAt && (
+                <span> (Expires: {new Date(profileUser.planData.expiresAt).toLocaleDateString()})</span>
+              )}
+              {isOwnProfile && (
+                <Link to="/plans" className="btn btn-renew">
+                  Renew Plan
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
-            {filteredProducts.length > 0 ? (
-              <div className="product-grid">
-                {filteredProducts.map(product => (
-                  <div key={product.id} className="product-card">
-                    <div className="product-image-container">
-                      {product.imageUrl ? (
-                        <img 
-                          src={product.imageUrl} 
-                          alt={product.name}
-                          className="product-image"
-                          onError={(e) => e.target.style.display = 'none'}
-                        />
-                      ) : (
-                        <div className="product-image-placeholder">No Image</div>
-                      )}
-                      {product.stock <= 0 && (
-                        <div className="out-of-stock-badge">Out of Stock</div>
-                      )}
-                      {isPersonalProfile && (
-                        <div className="product-actions">
-                          <button 
-                            className="edit-button"
-                            onClick={() => navigate(`/edit-product/${product.id}`)}
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            className="delete-button"
-                            onClick={() => handleDeleteProduct(product.id)}
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="product-info">
-                      <h3>{product.name}</h3>
-                      <div className="product-category">{product.category}</div>
-                      <div className="product-price">₹{product.price?.toLocaleString('en-IN')}</div>
-                      {product.rating > 0 && (
-                        <div className="product-rating">
-                          <FaStar className="filled" /> {product.rating.toFixed(1)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="no-products">
-                <p>No products found matching your filters</p>
-                <button onClick={() => setFilters({
-                  category: '',
-                  sort: 'newest',
-                  availability: 'all'
-                })}>
-                  Reset Filters
-                </button>
-                {isPersonalProfile && (
-                  <button 
-                    className="add-product-button"
-                    onClick={() => navigate('/add-product')}
-                  >
-                    Add New Product
-                  </button>
-                )}
-              </div>
+      {/* Products Section */}
+      <div className="products-section">
+        <h2>Listed Products</h2>
+        
+        {products.length === 0 ? (
+          <div className="empty-products">
+            <img src={placeholderProduct} alt="No products" />
+            <p>{isOwnProfile ? "You haven't uploaded any products yet" : "This user hasn't listed any products yet"}</p>
+            {isOwnProfile && (
+              <Link to="/add-product" className="btn btn-primary">
+                Add Your First Product
+              </Link>
             )}
           </div>
-        )}
+        ) : (
+          <div className="products-grid">
+            {products.map((product) => {
+              const imageSrc = getImageKitUrl(product.imageUrl);
 
-        {activeTab === 'about' && (
-          <div className="about-tab">
-            <section className="bio-section">
-              <h2>About {profile.name}</h2>
-              <p>{profile.bio || 'No bio provided yet.'}</p>
-            </section>
-            
-            <div className="about-details-grid">
-              <div className="detail-card">
-                <h3>Contact Information</h3>
-                {profile.email && <p><FaEnvelope /> {profile.email}</p>}
-                {profile.contact && <p><FaPhone /> {profile.contact}</p>}
-              </div>
-              
-              <div className="detail-card">
-                <h3>Farm Details</h3>
-                {profile.farmSize && <p>Farm Size: {profile.farmSize} acres</p>}
-                {profile.crops && <p>Main Crops: {profile.crops}</p>}
-                {profile.irrigationType && <p>Irrigation: {profile.irrigationType}</p>}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'reviews' && (
-          <div className="reviews-tab">
-            <div className="reviews-summary">
-              <div className="average-rating">
-                <h2>{averageRating.toFixed(1)}</h2>
-                <div className="stars">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <FaStar 
-                      key={star} 
-                      className={star <= Math.round(averageRating) ? 'filled' : 'empty'} 
-                    />
-                  ))}
+              return (
+                <div key={product.id} className="product-card">
+                  <img 
+                    src={imageSrc || placeholderProduct} 
+                    alt={product.name} 
+                    className="product-image"
+                    onClick={() => navigate(`/product/${product.id}`)}
+                    onError={(e) => {
+                      e.target.src = placeholderProduct;
+                    }}
+                  />
+                  <div className="product-info">
+                    <h3>{product.name}</h3>
+                    <p className="product-price">₹{product.price?.toLocaleString() || '0'}</p>
+                    <p className="product-location">{product.location}</p>
+                  </div>
+                  {isOwnProfile && (
+                    <button 
+                      className="btn btn-delete"
+                      onClick={() => handleDeleteProduct(product.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
-                <p>{reviews.length} reviews</p>
-              </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Follow Popup */}
+      {showFollowPopup && (
+        <div className="follow-popup">
+          {isFollowing ? 'You are now following this seller' : 'You have unfollowed this seller'}
+        </div>
+      )}
+
+      {/* Followers Popup */}
+      {showFollowersPopup && (
+        <div className="follow-popup-modal">
+          <div className="follow-popup-content">
+            <div className="follow-popup-header">
+              <h3>Followers</h3>
+              <button onClick={() => setShowFollowersPopup(false)}>
+                <FiX />
+              </button>
             </div>
-            
-            {!isPersonalProfile && currentUserId && (
-              <div className="add-review-form">
-                <h3>Write a Review</h3>
-                <form onSubmit={handleReviewSubmit}>
-                  <div className="form-group">
-                    <label>Rating</label>
-                    <div className="rating-input">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <FaStar 
-                          key={star}
-                          className={star <= newReview.rating ? 'filled' : 'empty'}
-                          onClick={() => setNewReview({...newReview, rating: star})}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>Title</label>
-                    <input 
-                      type="text" 
-                      value={newReview.title}
-                      onChange={(e) => setNewReview({...newReview, title: e.target.value})}
-                      required
+            <div className="follow-list">
+              {followersList.length > 0 ? (
+                followersList.map(user => (
+                  <div key={user.id} className="follow-item">
+                    <img 
+                      src={getImageKitUrl(user.profilePhotoUrl) || placeholderUser} 
+                      alt={user.name}
+                      onError={(e) => {
+                        e.target.src = placeholderUser;
+                      }}
                     />
-                  </div>
-                  <div className="form-group">
-                    <label>Your Review</label>
-                    <textarea
-                      value={newReview.comment}
-                      onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="submit-review-button">
-                    Submit Review
-                  </button>
-                </form>
-              </div>
-            )}
-            
-            <div className="review-list">
-              {reviews.length > 0 ? (
-                reviews.map(review => (
-                  <div key={review.id} className="review-card">
-                    <div className="review-header">
-                      <div className="reviewer-info">
-                        <div className="reviewer-avatar">
-                          {review.reviewerPhoto ? (
-                            <img 
-                              src={review.reviewerPhoto} 
-                              alt={review.reviewerName}
-                              onError={(e) => e.target.style.display = 'none'}
-                            />
-                          ) : (
-                            review.reviewerName?.charAt(0) || 'A'
-                          )}
-                        </div>
-                        <div>
-                          <h4>{review.reviewerName || 'Anonymous'}</h4>
-                          <div className="review-rating">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <FaStar 
-                                key={star} 
-                                className={star <= review.rating ? 'filled' : 'empty'} 
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="review-date">
-                        {review.createdAt?.toLocaleDateString() || 'Unknown date'}
-                      </div>
-                    </div>
-                    <div className="review-content">
-                      <h5>{review.title}</h5>
-                      <p>{review.comment}</p>
-                    </div>
-                    <div className="review-actions">
+                    <span>{user.name}</span>
+                    {currentUser && currentUser.uid !== user.id && (
                       <button 
-                        className={`like-button ${review.likes?.includes(currentUserId) ? 'active' : ''}`}
-                        onClick={() => handleReaction(review.id, 'like')}
-                        disabled={!currentUserId}
+                        className="btn btn-follow-small"
+                        onClick={() => {
+                          // Implement follow/unfollow logic here
+                        }}
                       >
-                        <FaThumbsUp /> {review.likes?.length || 0}
+                        {followingList.some(u => u.id === user.id) ? 'Following' : 'Follow'}
                       </button>
-                      <button 
-                        className={`dislike-button ${review.dislikes?.includes(currentUserId) ? 'active' : ''}`}
-                        onClick={() => handleReaction(review.id, 'dislike')}
-                        disabled={!currentUserId}
-                      >
-                        <FaThumbsDown /> {review.dislikes?.length || 0}
-                      </button>
-                      {isPersonalProfile && (
-                        <button 
-                          className="delete-review-button"
-                          onClick={async () => {
-                            if (window.confirm('Are you sure you want to delete this review?')) {
-                              try {
-                                await deleteDoc(doc(db, 'reviews', review.id));
-                                setReviews(reviews.filter(r => r.id !== review.id));
-                              } catch (error) {
-                                console.error('Error deleting review:', error);
-                              }
-                            }
-                          }}
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 ))
               ) : (
-                <div className="no-reviews">
-                  <p>No reviews yet. {!isPersonalProfile && currentUserId && 'Be the first to review!'}</p>
-                </div>
+                <p>No followers yet</p>
               )}
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+
+      {/* Following Popup */}
+      {showFollowingPopup && (
+        <div className="follow-popup-modal">
+          <div className="follow-popup-content">
+            <div className="follow-popup-header">
+              <h3>Following</h3>
+              <button onClick={() => setShowFollowingPopup(false)}>
+                <FiX />
+              </button>
+            </div>
+            <div className="follow-list">
+              {followingList.length > 0 ? (
+                followingList.map(user => (
+                  <div key={user.id} className="follow-item">
+                    <img 
+                      src={getImageKitUrl(user.profilePhotoUrl) || placeholderUser} 
+                      alt={user.name}
+                      onError={(e) => {
+                        e.target.src = placeholderUser;
+                      }}
+                    />
+                    <span>{user.name}</span>
+                    {currentUser && currentUser.uid !== user.id && (
+                      <button 
+                        className="btn btn-follow-small"
+                        onClick={() => {
+                          // Implement follow/unfollow logic here
+                        }}
+                      >
+                        {followersList.some(u => u.id === user.id) ? 'Following' : 'Follow'}
+                      </button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p>Not following anyone yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Popup */}
+      {showReportPopup && (
+        <div className="report-popup-modal">
+          <div className="report-popup-content">
+            <div className="report-popup-header">
+              <h3>Report User</h3>
+              <button onClick={() => setShowReportPopup(false)}>
+                <FiX />
+              </button>
+            </div>
+            <div className="report-form">
+              <label>Reason for reporting:</label>
+              <select 
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+              >
+                <option value="">Select a reason</option>
+                <option value="Spam">Spam</option>
+                <option value="Fraud">Fraud</option>
+                <option value="Inappropriate profile picture">Inappropriate profile picture</option>
+                <option value="This user is threatening me">This user is threatening me</option>
+                <option value="This user is insulting me">This user is insulting me</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <label>Description (min 10 characters):</label>
+              <textarea
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+                placeholder="Please provide details about your report"
+                maxLength="500"
+              />
+              <div className="character-count">
+                {reportDescription.length} / 500
+              </div>
+
+              <div className="report-actions">
+                <button 
+                  className="btn btn-cancel"
+                  onClick={() => setShowReportPopup(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn btn-submit"
+                  onClick={handleReportUser}
+                  disabled={!reportReason || reportDescription.length < 10}
+                >
+                  Send Complaint
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
