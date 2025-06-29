@@ -1,68 +1,188 @@
+/* Base Styles */
 .search-page {
-  padding: 1rem;
   max-width: 1200px;
-  margin-top: 3.5rem;
+  margin: 0 auto;
+  padding: 1rem;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
+/* Search Header */
 .search-header {
   position: sticky;
   top: 0;
-  background: white;
+  background: rgba(255, 255, 255, 0);
   padding: 1rem 0;
-  z-index: 10;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .search-bar {
   display: flex;
   align-items: center;
   background: #f5f5f5;
-  border-radius: 24px;
+  border-radius: 2rem;
   padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+  background: #e8e8e8;
 }
 
 .search-bar input {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 1rem;
   outline: none;
+  color: #333;
 }
 
-.search-button {
-  background: none;
-  border: none;
-  color: #2e7d32;
-  cursor: pointer;
-  margin-right: 0.5rem;
-}
-
+.search-button, 
 .clear-button {
   background: none;
   border: none;
-  color: #757575;
+  color: #666;
   cursor: pointer;
-  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: color 0.2s;
 }
 
-.search-content {
-  margin-top: 1rem;
+.search-button:hover, 
+.clear-button:hover {
+  color: #333;
 }
 
+/* Search Tabs */
+.search-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #eeeeee00;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.search-tabs::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.search-tabs button {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.search-tabs button.active {
+  background: #f0f0f0;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.search-tabs button:hover:not(.active) {
+  background: #f8f8f8;
+}
+
+/* Results Sections */
+.results-section {
+  margin-bottom: 2rem;
+}
+
+.results-section h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.25rem;
+}
+
+.search-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+.user-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* User Card */
+.user-card {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.user-card:hover {
+  background: #f9f9f9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 1rem;
+  border: 2px solid #f0f0f0;
+}
+
+.user-info h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.username {
+  margin: 0.25rem 0 0;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* Empty States */
+.no-results, 
 .loading-spinner {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+}
+
+.no-results p:first-child {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #333;
 }
 
 .spinner {
-  border: 3px solid rgba(46, 125, 50, 0.2);
+  border: 3px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   border-top: 3px solid #2e7d32;
-  width: 30px;
-  height: 30px;
+  width: 2.5rem;
+  height: 2.5rem;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
 }
@@ -72,76 +192,94 @@
   100% { transform: rotate(360deg); }
 }
 
-.search-results {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.no-results {
-  text-align: center;
-  padding: 2rem;
-  color: #757575;
-}
-
+/* Search Suggestions */
 .search-suggestions {
-  margin-top: 1rem;
-}
-
-.search-suggestions h3 {
-  color: #2e7d32;
-  margin-bottom: 0.5rem;
+  padding: 1.5rem 1rem;
 }
 
 .recent-searches {
   list-style: none;
   padding: 0;
+  margin: 0 0 2rem 0;
 }
 
 .recent-searches li {
   padding: 0.75rem 1rem;
-  background: #f5f5f5;
-  margin-bottom: 0.5rem;
-  border-radius: 8px;
+  border-radius: 0.75rem;
   cursor: pointer;
-  transition: background 0.2s;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
 }
 
 .recent-searches li:hover {
-  background: #e0e0e0;
+  background: #f5f5f5;
+}
+
+.recent-searches li::before {
+  content: "↩";
+  margin-right: 0.75rem;
+  color: #999;
 }
 
 .category-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
 }
 
 .category-tags span {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: #f0f0f0;
   padding: 0.5rem 1rem;
-  border-radius: 20px;
+  border-radius: 2rem;
   cursor: pointer;
-  transition: background 0.2s;
+  font-size: 0.875rem;
+  transition: all 0.2s;
 }
 
 .category-tags span:hover {
-  background: #c8e6c9;
+  background: #e0e0e0;
+  transform: translateY(-1px);
 }
 
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-    .search-page{
-        margin-bottom: 4rem;
-        top: 0px;
-    }
-  .search-results {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  .search-page {
+    padding: 0.75rem;
   }
   
-  .search-header {
-    padding: 0.5rem 0;
+  .search-results {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  
+  .user-card {
+    padding: 0.5rem;
+  }
+  
+  .user-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-bar {
+    padding: 0.5rem;
+  }
+  
+  .search-results {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+  
+  .search-tabs button {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .category-tags span {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
   }
 }

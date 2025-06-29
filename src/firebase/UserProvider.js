@@ -1,8 +1,10 @@
-// UserProvider.js
+// firebase/UserProvider.js
+// firebase/UserProvider.js
 import { createContext, useContext, useEffect, useState } from 'react';
-import { auth, onAuthStateChanged } from './firebase'; // Adjust the import path as needed
+import { auth, db, onAuthStateChanged, getDoc, doc } from './firebase';
+import { PLANS } from './plans'; // Import PLANS from plans.js
 
-// Create context
+
 export const UserContext = createContext();
 
 export function UserProvider({ children }) {
@@ -10,35 +12,48 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Subscribe to auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is signed in
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Get additional user data from Firestore
+        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        
         setUser({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          ...userData,
+          // Default to free plan if not specified
+          plan: userData.plan || 'free',
+          planData: userData.planData || PLANS.free
         });
       } else {
-        // User is signed out
         setUser(null);
       }
       setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
+  const logout = async () => {
+    try {
+      await auth.signOut();
+      setUser(null);
+    } catch (error) {
+      console.error("Error signing out:", error);
+      throw error;
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ user, loading }}>
+    <UserContext.Provider value={{ user, loading, logout }}>
       {children}
     </UserContext.Provider>
   );
 }
 
-// Custom hook to use the user context
 export function useUser() {
   const context = useContext(UserContext);
   if (context === undefined) {
