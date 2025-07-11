@@ -31,6 +31,22 @@ const ChatRoom = () => {
   const currentUser = auth.currentUser;
   const navigate = useNavigate();
 
+  // Add this function to send notifications
+  const sendNotification = async (userId, type, fromUserId, fromUserName) => {
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        userId,
+        type,
+        fromUserId,
+        fromUserName,
+        read: false,
+        timestamp: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
+  };
+
   useEffect(() => {
     if (!currentUser || !receiverId) return;
 
@@ -137,12 +153,21 @@ const ChatRoom = () => {
         updatedAt: serverTimestamp()
       }, { merge: true });
 
+      // Send notification to the receiver
+      await sendNotification(
+        receiverId,
+        'message',
+        currentUser.uid,
+        currentUser.displayName || currentUser.email
+      );
+
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
 
+  // ... rest of your component remains the same ...
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       handleSendMessage(e);
@@ -175,6 +200,7 @@ const ChatRoom = () => {
     if (url.startsWith('http') || url.startsWith('data:image')) return url;
     return `https://ik.imagekit.io/ankurit${url.startsWith('/') ? url : `/${url}`}`;
   };
+
 
   return (
     <div className={styles.chatRoomContainer}>
