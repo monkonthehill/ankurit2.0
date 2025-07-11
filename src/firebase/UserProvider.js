@@ -1,37 +1,40 @@
-// firebase/UserProvider.js
-// firebase/UserProvider.js
-import { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db, onAuthStateChanged, getDoc, doc } from './firebase';
-import { PLANS } from './plans'; // Import PLANS from plans.js
-
-
-export const UserContext = createContext();
+// src/firebase/UserProvider.js
+import { useContext, useEffect, useState } from 'react';
+import { auth, db } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getDoc, doc } from 'firebase/firestore';
+import { UserContext } from './UserContext';  // Import from new file
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profileCompleted, setProfileCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Get additional user data from Firestore
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
-        
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          ...userData,
-          // Default to free plan if not specified
-          plan: userData.plan || 'free',
-          planData: userData.planData || PLANS.free
-        });
-      } else {
-        setUser(null);
+      try {
+        if (firebaseUser) {
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          const userData = userDoc.exists() ? userDoc.data() : {};
+          
+          setProfileCompleted(userData.isProfileCompleted || false);
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            ...userData,
+            isProfileCompleted: userData.isProfileCompleted || false
+          });
+        } else {
+          setUser(null);
+          setProfileCompleted(false);
+        }
+      } catch (error) {
+        console.error("Error in user state change:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -40,15 +43,13 @@ export function UserProvider({ children }) {
   const logout = async () => {
     try {
       await auth.signOut();
-      setUser(null);
     } catch (error) {
       console.error("Error signing out:", error);
-      throw error;
     }
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, logout }}>
+    <UserContext.Provider value={{ user, loading, logout, profileCompleted }}>
       {children}
     </UserContext.Provider>
   );

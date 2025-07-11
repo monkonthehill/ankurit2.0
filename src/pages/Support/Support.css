@@ -1,0 +1,49 @@
+.support-container {
+  text-align: center;
+  padding: 2rem 1rem;
+  font-family: 'Segoe UI', sans-serif;
+  margin-bottom: 4rem;
+}
+
+.top-illustration img {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 1.5rem;
+  display: block;
+}
+
+.support-tagline {
+  font-size: 1.4rem;
+  color: #2d6a4f;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+.support-description {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+.support-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.support-btn {
+  display: block;
+  padding: 0.8rem;
+  background-color: #40916c;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.support-btn:hover {
+  background-color: #2d6a4f;
+}

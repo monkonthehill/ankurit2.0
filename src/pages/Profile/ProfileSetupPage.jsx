@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db, getDoc, doc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from '../../firebase/firebase';
+import { auth, db, getDoc, doc, setDoc, collection, query, where, getDocs, serverTimestamp } from '../../firebase/firebase';
 import ImageUploader from '../../components/ImageKit/ImageUploader';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './ProfileSetupPage.css';
+
+// Fix for default marker icons in Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const ProfileSetupForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -28,55 +39,73 @@ const ProfileSetupForm = () => {
       stage2: false,
       stage3: false,
       stage4: false
-    }
+    },
+    // New address fields
+    village: '',
+    tehsil: '',
+    district: '',
+    state: '',
+    locationName: '',
+    lat: null,
+    lng: null,
+    locationShared: false
   });
   const [loading, setLoading] = useState(true);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists() && userDoc.data().isProfileCompleted) {
-          // Edit mode - prefill form with existing data
-          setUserData({
-            ...userDoc.data(),
-            email: user.email,
-            termsAgreed: {
-              stage1: true,
-              stage2: true,
-              stage3: true,
-              stage4: true
-            }
-          });
-        } else {
-          // New profile setup
-          setUserData(prev => ({
-            ...prev,
-            email: user.email,
-            followers: [],
-            following: [],
-            wishlist: [],
-            reviews: []
-          }));
+useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setUserData({
+          ...userData,
+          email: user.email,
+          termsAgreed: {
+            stage1: true,
+            stage2: true,
+            stage3: true,
+            stage4: true
+          }
+        });
+
+        // If username exists and is valid, mark it as available
+        if (userData.username) {
+          setUsernameAvailable(true);
         }
-        setLoading(false);
       } else {
-        navigate('/login');
+        setUserData(prev => ({
+          ...prev,
+          email: user.email,
+          followers: [],
+          following: [],
+          wishlist: [],
+          reviews: []
+        }));
       }
-    });
+      setLoading(false);
+    } else {
+      navigate('/login');
+    }
+  });
 
-    return () => unsubscribe();
-  }, [navigate]);
-
+  return () => unsubscribe();
+}, [navigate]);
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+     if (name === 'username' && usernameAvailable === true) {
+    return;
+  }
     
     if (name.startsWith('termsAgreed')) {
       const stage = name.split('.')[1];
@@ -86,6 +115,11 @@ const ProfileSetupForm = () => {
           ...prev.termsAgreed,
           [stage]: checked
         }
+      }));
+    } else if (name === 'locationShared') {
+      setUserData(prev => ({
+        ...prev,
+        [name]: checked
       }));
     } else {
       setUserData(prev => ({
@@ -125,7 +159,6 @@ const ProfileSetupForm = () => {
       if (querySnapshot.empty) {
         setUsernameAvailable(true);
       } else {
-        // Check if it's the current user's username
         const currentUser = auth.currentUser;
         const userDoc = querySnapshot.docs[0];
         if (userDoc.id === currentUser.uid) {
@@ -140,6 +173,44 @@ const ProfileSetupForm = () => {
       console.error(err);
     } finally {
       setUsernameChecking(false);
+    }
+  };
+
+  const handleFindLocation = async () => {
+    if (!userData.village || !userData.district || !userData.state) {
+      setMapError('Please fill in village, district, and state');
+      return;
+    }
+
+    setMapLoading(true);
+    setMapError('');
+
+    try {
+      const queryString = `${userData.village}, ${userData.tehsil}, ${userData.district}, ${userData.state}, India`.replace(/ ,/g, ',');
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryString)}&format=json`
+      );
+      
+      if (!response.ok) throw new Error('Geocoding failed');
+      
+      const data = await response.json();
+      
+      if (data.length === 0) {
+        throw new Error('Location not found');
+      }
+      
+      const firstResult = data[0];
+      setUserData(prev => ({
+        ...prev,
+        lat: parseFloat(firstResult.lat),
+        lng: parseFloat(firstResult.lon),
+        locationName: firstResult.display_name
+      }));
+    } catch (err) {
+      setMapError(err.message || 'Failed to find location');
+      console.error('Geocoding error:', err);
+    } finally {
+      setMapLoading(false);
     }
   };
 
@@ -202,299 +273,415 @@ const ProfileSetupForm = () => {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateStep(currentStep)) return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateStep(currentStep)) return;
 
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDataToSave = {
-        ...userData,
-        isProfileCompleted: true,
-        updatedAt: serverTimestamp()
-      };
-
-      if (!userData.createdAt) {
-        userDataToSave.createdAt = serverTimestamp();
-      }
-
-      await setDoc(userDocRef, userDataToSave, { merge: true });
-      
-      setSuccess('Profile saved successfully!');
-      setTimeout(() => {
-        navigate('/profile');
-      }, 1500);
-    } catch (err) {
-      setError('Error saving profile: ' + err.message);
-      console.error(err);
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      navigate('/login');
+      return;
     }
-  };
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDataToSave = {
+      ...userData,
+      isProfileCompleted: true, // This marks the profile as complete
+      updatedAt: serverTimestamp()
+    };
+
+    if (!userData.createdAt) {
+      userDataToSave.createdAt = serverTimestamp();
+    }
+
+    await setDoc(userDocRef, userDataToSave, { merge: true });
+    
+    setSuccess('Profile saved successfully!');
+    setTimeout(() => {
+      navigate('/');
+    }, 1500);
+  } catch (err) {
+    setError('Error saving profile: ' + err.message);
+    console.error(err);
+  }
+};
 
   if (loading) {
     return <div className="loading-container">Loading...</div>;
   }
 
   return (
-    <div className="profile-setup-container">
-      <div className="progress-container">
-        <div className="progress-bar">
-          {[1, 2, 3, 4].map((step) => (
-            <React.Fragment key={step}>
-              <div 
-                className={`progress-step ${currentStep >= step ? 'active' : ''}`}
-                onClick={() => currentStep > step && setCurrentStep(step)}
-              >
-                {step}
-              </div>
-              {step < 4 && <div className={`progress-line ${currentStep > step ? 'active' : ''}`}></div>}
-            </React.Fragment>
-          ))}
-        </div>
-        <div className="step-titles">
-          <span className={currentStep === 1 ? 'active' : ''}>Basic Info</span>
-          <span className={currentStep === 2 ? 'active' : ''}>Photos</span>
-          <span className={currentStep === 3 ? 'active' : ''}>Business</span>
-          <span className={currentStep === 4 ? 'active' : ''}>KYC</span>
-        </div>
+    <div className="setup-container">
+      <div className="step-tracker">
+        {[1, 2, 3, 4].map((step) => (
+          <div 
+            key={step}
+            className={`step-bubble ${currentStep === step ? 'active' : ''} ${currentStep > step ? 'completed' : ''}`}
+            onClick={() => currentStep > step && setCurrentStep(step)}
+          >
+            <div className="step-content">
+              <span className="step-number">{step}</span>
+              <span className="step-label">
+                {step === 1 && 'Basic'}
+                {step === 2 && 'Photos'}
+                {step === 3 && 'Business'}
+                {step === 4 && 'KYC'}
+              </span>
+            </div>
+          </div>
+        ))}
+        <div className="progress-bar" style={{ width: `${(currentStep - 1) * 33.33}%` }}></div>
       </div>
 
-      <form onSubmit={handleSubmit} className="profile-form">
-        {error && <div className="alert error">{error}</div>}
-        {success && <div className="alert success">{success}</div>}
+      <div className="form-card">
+        {error && <div className="alert-message error">{error}</div>}
+        {success && <div className="alert-message success">{success}</div>}
 
-        {currentStep === 1 && (
-          <div className="form-step">
-            <h2>Basic Information</h2>
-            <div className="form-group">
-              <label htmlFor="fullName">Full Name*</label>
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                value={userData.fullName}
-                onChange={handleChange}
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="form-content">
+          {currentStep === 1 && (
+            <>
+              <h2 className="form-title">Basic Information</h2>
+              <div className="input-grid">
+                <div className="input-group">
+                  <label>Full Name*</label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={userData.fullName}
+                    onChange={handleChange}
+                    required
+                    className="input-field"
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="username">Username*</label>
-              <div className="username-input-container">
+                <div className="input-group">
+                  <label>Username*</label>
+                  <div className="input-with-feedback">
+                    <input
+                      type="text"
+                      name="username"
+                      value={userData.username}
+                      onChange={handleChange}
+                      onBlur={checkUsernameAvailability}
+                      required
+                      className="input-field"
+                    />
+                    {usernameChecking && <span className="input-status checking">Checking...</span>}
+                    {usernameAvailable === true && <span className="input-status available">✓ Available</span>}
+                    {usernameAvailable === false && <span className="input-status unavailable">✗ Taken</span>}
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={userData.email}
+                    onChange={handleChange}
+                    readOnly
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label>Phone Number*</label>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    value={userData.phoneNumber}
+                    onChange={handleChange}
+                    required
+                    className="input-field"
+                  />
+                </div>
+
+                {/* New Address Fields */}
+                <div className="input-group">
+                  <label>Village*</label>
+                  <input
+                    type="text"
+                    name="village"
+                    value={userData.village}
+                    onChange={handleChange}
+                    required
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label>Tehsil</label>
+                  <input
+                    type="text"
+                    name="tehsil"
+                    value={userData.tehsil}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label>District*</label>
+                  <input
+                    type="text"
+                    name="district"
+                    value={userData.district}
+                    onChange={handleChange}
+                    required
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label>State*</label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={userData.state}
+                    onChange={handleChange}
+                    required
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              {/* Location Finder */}
+              <div className="location-section">
+                <button 
+                  type="button" 
+                  onClick={handleFindLocation}
+                  disabled={mapLoading}
+                  className="location-button"
+                >
+                  {mapLoading ? 'Finding...' : 'Find My Location on Map'}
+                </button>
+                {mapError && <div className="map-error">{mapError}</div>}
+
+                {userData.lat && userData.lng && (
+                  <div className="map-container">
+                    <div className="map-wrapper">
+                      <MapContainer
+                        center={[userData.lat, userData.lng]}
+                        zoom={13}
+                        style={{ height: '200px', width: '100%' }}
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        <Marker position={[userData.lat, userData.lng]}>
+                          <Popup>{userData.locationName}</Popup>
+                        </Marker>
+                      </MapContainer>
+                    </div>
+                    <div className="location-note">
+                      We use this location to help users find nearby nurseries. You may choose to keep it private.
+                    </div>
+                    <div className="checkbox-group">
+                      <input
+                        type="checkbox"
+                        id="locationShared"
+                        name="locationShared"
+                        checked={userData.locationShared}
+                        onChange={handleChange}
+                      />
+                      <label htmlFor="locationShared">
+                        I allow Ankurit to show this location on my public profile.
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="checkbox-group">
                 <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={userData.username}
+                  type="checkbox"
+                  id="terms1"
+                  name="termsAgreed.stage1"
+                  checked={userData.termsAgreed.stage1}
                   onChange={handleChange}
-                  onBlur={checkUsernameAvailability}
                   required
                 />
-                {usernameChecking && <span className="checking-indicator">Checking...</span>}
-                {usernameAvailable === true && <span className="availability-indicator available">✓ Available</span>}
-                {usernameAvailable === false && <span className="availability-indicator taken">✗ Taken</span>}
+                <label htmlFor="terms1">I agree to the terms and conditions for this stage</label>
               </div>
-            </div>
+            </>
+          )}
 
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={userData.email}
-                onChange={handleChange}
-                readOnly
-              />
-            </div>
+          {/* Rest of your steps (2, 3, 4) remain unchanged */}
+          {currentStep === 2 && (
+            <>
+              <h2 className="form-title">Profile Photos</h2>
+              
+              <div className="photo-upload-section">
+                <div className="photo-upload-group">
+                  <label>Profile Photo</label>
+                  <ImageUploader
+                    userId={auth.currentUser?.uid}
+                    type="profile"
+                    currentImageUrl={userData.profilePhoto}
+                    onUploadComplete={(url) => handleImageUpload('profilePhoto', url)}
+                    label="Upload Profile Photo"
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="phoneNumber">Phone Number*</label>
-              <input
-                type="tel"
-                id="phoneNumber"
-                name="phoneNumber"
-                value={userData.phoneNumber}
-                onChange={handleChange}
-                required
-              />
-            </div>
+                <div className="photo-upload-group">
+                  <label>Cover Photo</label>
+                  <ImageUploader
+                    userId={auth.currentUser?.uid}
+                    type="cover"
+                    currentImageUrl={userData.coverPhoto}
+                    onUploadComplete={(url) => handleImageUpload('coverPhoto', url)}
+                    label="Upload Cover Photo"
+                  />
+                </div>
+              </div>
 
-            <div className="form-group checkbox-group">
-              <input
-                type="checkbox"
-                id="terms1"
-                name="termsAgreed.stage1"
-                checked={userData.termsAgreed.stage1}
-                onChange={handleChange}
-                required
-              />
-              <label htmlFor="terms1">I agree to the terms and conditions for this stage</label>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 2 && (
-          <div className="form-step">
-            <h2>Profile Photos</h2>
-            
-            <div className="photo-upload-section">
-              <div className="photo-upload-group">
-                <label>Profile Photo</label>
-                <ImageUploader
-                  userId={auth.currentUser?.uid}
-                  type="profile"
-                  currentImageUrl={userData.profilePhoto}
-                  onUploadComplete={(url) => handleImageUpload('profilePhoto', url)}
-                  label="Upload Profile Photo"
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  id="terms2"
+                  name="termsAgreed.stage2"
+                  checked={userData.termsAgreed.stage2}
+                  onChange={handleChange}
+                  required
                 />
+                <label htmlFor="terms2">I agree to the terms and conditions for this stage</label>
+              </div>
+            </>
+          )}
+
+          {currentStep === 3 && (
+            <>
+              <h2 className="form-title">Business Information</h2>
+              
+              <div className="input-grid">
+                <div className="input-group">
+                  <label>Business Name*</label>
+                  <input
+                    type="text"
+                    name="businessName"
+                    value={userData.businessName}
+                    onChange={handleChange}
+                    required
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label>Business Address*</label>
+                  <textarea
+                    name="businessAddress"
+                    value={userData.businessAddress}
+                    onChange={handleChange}
+                    required
+                    className="input-field"
+                    rows="4"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label>Billing Cycle</label>
+                  <select
+                    name="billingCycle"
+                    value={userData.billingCycle}
+                    onChange={handleChange}
+                    className="input-field"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="photo-upload-group">
-                <label>Cover Photo</label>
-                <ImageUploader
-                  userId={auth.currentUser?.uid}
-                  type="cover"
-                  currentImageUrl={userData.coverPhoto}
-                  onUploadComplete={(url) => handleImageUpload('coverPhoto', url)}
-                  label="Upload Cover Photo"
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  id="terms3"
+                  name="termsAgreed.stage3"
+                  checked={userData.termsAgreed.stage3}
+                  onChange={handleChange}
+                  required
                 />
+                <label htmlFor="terms3">I agree to the terms and conditions for this stage</label>
               </div>
-            </div>
+            </>
+          )}
 
-            <div className="form-group checkbox-group">
-              <input
-                type="checkbox"
-                id="terms2"
-                name="termsAgreed.stage2"
-                checked={userData.termsAgreed.stage2}
-                onChange={handleChange}
-                required
-              />
-              <label htmlFor="terms2">I agree to the terms and conditions for this stage</label>
-            </div>
-          </div>
-        )}
+          {currentStep === 4 && (
+            <>
+              <h2 className="form-title">Optional KYC Information</h2>
+              
+              <div className="input-grid">
+                <div className="input-group">
+                  <label>GST Number</label>
+                  <input
+                    type="text"
+                    name="gstNumber"
+                    value={userData.gstNumber}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
+                </div>
 
-        {currentStep === 3 && (
-          <div className="form-step">
-            <h2>Business Information</h2>
-            
-            <div className="form-group">
-              <label htmlFor="businessName">Business Name*</label>
-              <input
-                type="text"
-                id="businessName"
-                name="businessName"
-                value={userData.businessName}
-                onChange={handleChange}
-                required
-              />
-            </div>
+                <div className="input-group">
+                  <label>PAN</label>
+                  <input
+                    type="text"
+                    name="pan"
+                    value={userData.pan}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
+                </div>
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="businessAddress">Business Address*</label>
-              <textarea
-                id="businessAddress"
-                name="businessAddress"
-                value={userData.businessAddress}
-                onChange={handleChange}
-                required
-              />
-            </div>
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  id="terms4"
+                  name="termsAgreed.stage4"
+                  checked={userData.termsAgreed.stage4}
+                  onChange={handleChange}
+                  required
+                />
+                <label htmlFor="terms4">I agree to the terms and conditions for this stage</label>
+              </div>
+            </>
+          )}
 
-            <div className="form-group">
-              <label htmlFor="billingCycle">Billing Cycle</label>
-              <select
-                id="billingCycle"
-                name="billingCycle"
-                value={userData.billingCycle}
-                onChange={handleChange}
+          <div className="form-actions">
+            {currentStep > 1 && (
+              <button 
+                type="button" 
+                onClick={prevStep} 
+                className="action-btn secondary"
               >
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-              </select>
-            </div>
-
-            <div className="form-group checkbox-group">
-              <input
-                type="checkbox"
-                id="terms3"
-                name="termsAgreed.stage3"
-                checked={userData.termsAgreed.stage3}
-                onChange={handleChange}
-                required
-              />
-              <label htmlFor="terms3">I agree to the terms and conditions for this stage</label>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 4 && (
-          <div className="form-step">
-            <h2>Optional KYC Information</h2>
+                ← Back
+              </button>
+            )}
             
-            <div className="form-group">
-              <label htmlFor="gstNumber">GST Number</label>
-              <input
-                type="text"
-                id="gstNumber"
-                name="gstNumber"
-                value={userData.gstNumber}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="pan">PAN</label>
-              <input
-                type="text"
-                id="pan"
-                name="pan"
-                value={userData.pan}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="form-group checkbox-group">
-              <input
-                type="checkbox"
-                id="terms4"
-                name="termsAgreed.stage4"
-                checked={userData.termsAgreed.stage4}
-                onChange={handleChange}
-                required
-              />
-              <label htmlFor="terms4">I agree to the terms and conditions for this stage</label>
-            </div>
+            {currentStep < 4 ? (
+              <button 
+                type="button" 
+                onClick={nextStep} 
+                className="action-btn primary"
+              >
+                Continue →
+              </button>
+            ) : (
+              <button 
+                type="submit" 
+                className="action-btn submit"
+              >
+                {userData.isProfileCompleted ? 'Update Profile' : 'Complete Setup'}
+              </button>
+            )}
           </div>
-        )}
-
-        <div className="form-navigation">
-          {currentStep > 1 && (
-            <button type="button" onClick={prevStep} className="btn secondary">
-              Back
-            </button>
-          )}
-          
-          {currentStep < 4 ? (
-            <button type="button" onClick={nextStep} className="btn primary">
-              Next
-            </button>
-          ) : (
-            <button type="submit" className="btn primary">
-              {userData.isProfileCompleted ? 'Update Profile' : 'Complete Setup'}
-            </button>
-          )}
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './hero.css';
+import { useNavigate } from 'react-router-dom';
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   
+  const navigate = useNavigate();
   // Background images for slideshow
   const slides = [
     'url("/pictures/photo1.jpg")',  // Replace with your actual image paths
@@ -62,13 +64,19 @@ const Hero = () => {
         </div>
         
         <div className="hero-buttons">
-          <button className="btn-primary">
-            Explore Markets <i className="fas fa-arrow-right"></i>
-          </button>
-          <button className="btn-secondary">
-            Join as a Farmer <i className="fas fa-user-plus"></i>
-          </button>
-        </div>
+  <button 
+    className="btn-primary"
+    onClick={() => navigate('/products')}
+  >
+    Explore Markets <i className="fas fa-arrow-right"></i>
+  </button>
+  <button 
+    className="btn-secondary"
+    onClick={() => navigate('/profile')}
+  >
+    Join as a Farmer <i className="fas fa-user-plus"></i>
+  </button>
+</div>
         
         <div className="hero-scroll-indicator">
           <span>Scroll Down</span>

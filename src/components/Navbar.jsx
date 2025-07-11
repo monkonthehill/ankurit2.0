@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
 import { 
   Menu, X, User, Home, Search, ShoppingBasket, LogIn, 
-  Sparkles, Compass, Leaf, Shield, HelpCircle, ShoppingCart 
+  Sparkles, Compass, Leaf, Shield, HelpCircle, ShoppingCart,
+  Bell, Mail
 } from "lucide-react";
 import logo from "./logo.png";
 import { useUser } from "../firebase/UserProvider";
 import { useLocation, useNavigate } from "react-router-dom";
+import { db } from "../firebase/firebase";
+import { collection, query, where, onSnapshot,getDocs, updateDoc, doc } from "firebase/firestore";
 import './Navbar.css';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const { user } = useUser();
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,6 +40,71 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
 
+  // Fetch unread notifications count (excluding messages)
+  useEffect(() => {
+    if (!user?.uid) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', user.uid),
+      where('type', '!=', 'message'),
+      where('read', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setUnreadCount(snapshot.size);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch unread messages count
+  useEffect(() => {
+    if (!user?.uid) {
+      setUnreadMessagesCount(0);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', user.uid),
+      where('type', '==', 'message'),
+      where('read', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setUnreadMessagesCount(snapshot.size);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleMessagesClick = async () => {
+    // Mark all message notifications as read
+    if (unreadMessagesCount > 0) {
+      try {
+        const q = query(
+          collection(db, 'notifications'),
+          where('userId', '==', user.uid),
+          where('type', '==', 'message'),
+          where('read', '==', false)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const updatePromises = querySnapshot.docs.map(docRef => 
+          updateDoc(doc(db, 'notifications', docRef.id), { read: true })
+        );
+        await Promise.all(updatePromises);
+      } catch (error) {
+        console.error("Error marking messages as read:", error);
+      }
+    }
+    navigate('/messages');
+  };
+
   return (
     <>
       {/* Mobile Header */}
@@ -46,15 +116,39 @@ const Navbar = () => {
             </a>
           </div>
 
-          {showMobileSearch && (
+          <div className="mobile-header-icons">
             <button 
-              className="mobile-search-icon-button"
-              onClick={() => navigate('/search')}
-              aria-label="Search"
+              onClick={handleMessagesClick}
+              className="mobile-inbox-icon"
+              aria-label="Messages"
             >
-              <Search size={20} className="search-icon" />
+              <Mail size={20} />
+              {unreadMessagesCount > 0 && (
+                <span className="mobile-notification-badge">
+                  {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                </span>
+              )}
             </button>
-          )}
+            
+            <a href="/notification" className="mobile-notification-icon">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="mobile-notification-badge">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </a>
+            
+            {showMobileSearch && (
+              <button 
+                className="mobile-search-icon-button"
+                onClick={() => navigate('/search')}
+                aria-label="Search"
+              >
+                <Search size={20} className="search-icon" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -92,6 +186,18 @@ const Navbar = () => {
                 Plans
               </a>
             </li>
+            <li>
+              <a href="/pre-order">
+                <Leaf size={16} className="nav-icon" />
+                Pre Order
+              </a>
+            </li>
+            <li>
+              <a href="/support">
+                <HelpCircle size={16} className="nav-icon" />
+                Support
+              </a>
+            </li>
           </ul>
         </nav>
 
@@ -103,6 +209,28 @@ const Navbar = () => {
           >
             <Search size={20} className="search-icon" />
           </button>
+
+          <button 
+            onClick={handleMessagesClick}
+            className="inbox-icon"
+            aria-label="Messages"
+          >
+            <Mail size={20} />
+            {unreadMessagesCount > 0 && (
+              <span className="notification-badge">
+                {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+              </span>
+            )}
+          </button>
+
+          <a href="/notification" className="notification-icon">
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="notification-badge">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </a>
         
           {user ? (
             <a href="/profile" className="user-profile">
@@ -186,8 +314,8 @@ const Navbar = () => {
                     )}
                   </div>
                   <div>
-                    <h3>Welcome Back, {user.displayName || 'User'}!</h3>
-                    <p>Premium Member</p>
+                    <h3>Welcome Back, {user.fullName || 'User'}!</h3>
+                    
                   </div>
                 </>
               ) : (
@@ -216,6 +344,12 @@ const Navbar = () => {
                 <span>Products</span>
               </a>
             </li>
+                        <li>
+              <a href="/pre-order" onClick={() => setIsOpen(false)}>
+                <Leaf size={18} className="link-icon" />
+                <span>Pre Order</span>
+              </a>
+            </li>
             <li>
               <a href="/explore" onClick={() => setIsOpen(false)}>
                 <Compass size={18} className="link-icon" />
@@ -229,17 +363,29 @@ const Navbar = () => {
               </a>
             </li>
             <li>
+              <a href="/messages" onClick={() => setIsOpen(false)}>
+                <Mail size={18} className="link-icon" />
+                <span>Inbox</span>
+              </a>
+            </li>
+            <li>
+              <a href="/notification" onClick={() => setIsOpen(false)}>
+                <Bell size={18} className="link-icon" />
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="menu-notification-badge">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </a>
+            </li>
+            <li>
               <a href="/support" onClick={() => setIsOpen(false)}>
                 <HelpCircle size={18} className="link-icon" />
                 <span>Support</span>
               </a>
             </li>
-            <li>
-              <a href="/gardening-tips" onClick={() => setIsOpen(false)}>
-                <Leaf size={18} className="link-icon" />
-                <span>Gardening Tips</span>
-              </a>
-            </li>
+
           </ul>
         </div>
       </div>

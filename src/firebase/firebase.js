@@ -3,7 +3,7 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut as firebaseSignOut,  // Import with alias
+  signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
@@ -23,9 +23,14 @@ import {
   orderBy,
   limit,
   addDoc,
-  serverTimestamp
+  arrayUnion,
+  arrayRemove,
+  serverTimestamp,
+  onSnapshot,  // Added for real-time updates
+  startAt,     // Added for search functionality
+  endAt        // Added for search functionality
 } from "firebase/firestore";
-import { getDatabase, ref, query as rtdbQuery, orderByChild, equalTo, get, remove } from "firebase/database";
+import { getDatabase, ref, query as rtdbQuery, orderByChild, equalTo, get, remove , set as rtdbSet} from "firebase/database";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -96,13 +101,13 @@ const signInWithGoogle = async () => {
 
 const logout = async () => {
   try {
-    await firebaseSignOut(auth);  // Use the aliased import
+    await firebaseSignOut(auth);
   } catch (error) {
     throw error;
   }
 };
 
-// Export everything needed
+// Export all needed functionality
 export {
   auth,
   db,
@@ -112,7 +117,6 @@ export {
   signIn,
   signInWithGoogle,
   logout,
-  deleteDoc,
   // Firestore functions
   doc,
   setDoc,
@@ -122,10 +126,17 @@ export {
   where,
   getDocs,
   updateDoc,
+  deleteDoc,
   orderBy,
   limit,
+  rtdbSet as set ,
   addDoc,
+  arrayUnion,
+  arrayRemove,
   serverTimestamp,
+  onSnapshot,  // Export for real-time updates
+  startAt,     // Export for search functionality
+  endAt,       // Export for search functionality
   // Realtime Database functions
   ref,
   rtdbQuery,

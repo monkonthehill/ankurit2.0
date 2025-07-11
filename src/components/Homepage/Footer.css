@@ -13,8 +13,8 @@
 
 /* Container to limit width and center content */
 .container {
-    max-width: 1200px; /* Max width for content */
-    margin: 0 auto; /* Center the container */
+    max-width: auto; /* Max width for content */
+     /* Center the container */
     padding: 0 15px; /* Inner padding for smaller screens */
 }
 
