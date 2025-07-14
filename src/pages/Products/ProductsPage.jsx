@@ -5,29 +5,29 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import Footer from '../../components/Homepage/Footer';
 import './ProductPage.css';
+import premiumBadge from '../../assets/images/premium-account.png';
 
 const ProductGallery = () => {
   const navigate = useNavigate();
+  
+  // Product data states
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [displayedProducts, setDisplayedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // UI states
   const [showFilters, setShowFilters] = useState(false);
-  const [sellerNames, setSellerNames] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 12;
   
   // Filter states
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [categories, setCategories] = useState({
     fruits: false,
-    grains: false,
-    nutsAndDryFruits: false,
-    oilAndOilseeds: false,
-    pulses: false,
-    spices: false,
-    sweeteners: false,
     vegetables: false,
+    flowers: false,
+    herbs: false,
+    trees: false,
     others: false
   });
   const [sellerTypes, setSellerTypes] = useState({
@@ -36,6 +36,10 @@ const ProductGallery = () => {
     trusted: false
   });
   const [dateRange, setDateRange] = useState('all');
+  
+  // Seller information state
+  const [sellers, setSellers] = useState({});
+  const productsPerPage = 12;
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -45,15 +49,30 @@ const ProductGallery = () => {
         
         onValue(productsRef, async (snapshot) => {
           const productsData = [];
+          const sellersData = {};
+          
           snapshot.forEach((childSnapshot) => {
             const product = childSnapshot.val();
             
+            // Process image URL - handles both direct URLs and ImageKit paths
             const processImageUrl = (url) => {
               if (!url) return null;
-              if (url.includes('http') || url.includes('data:image')) return url;
-              return `https://ik.imagekit.io/ankurit${url.startsWith('/') ? url : `/${url}`}`;
+              
+              // If it's already a full URL (http/https) or data URI
+              if (/^https?:\/\//.test(url) || /^data:image\//.test(url)) {
+                return url;
+              }
+              
+              // If it's an ImageKit path (starts with / or doesn't start with http)
+              if (url.startsWith('/') || !url.startsWith('http')) {
+                return `https://ik.imagekit.io/ankurit${url.startsWith('/') ? url : `/${url}`}`;
+              }
+              
+              // Default return null if format not recognized
+              return null;
             };
 
+            // Handle both imageUrl (single) and imageUrls (array) cases
             let imageUrls = [];
             if (product.imageUrls && Array.isArray(product.imageUrls)) {
               imageUrls = product.imageUrls.map(url => processImageUrl(url)).filter(Boolean);
@@ -65,46 +84,36 @@ const ProductGallery = () => {
             productsData.push({ 
               id: childSnapshot.key, 
               ...product,
-              imageUrls,
-              timestamp: product.timestamp || 0
+              imageUrls, // Normalized image URLs array
+              timestamp: product.timestamp || product.createdAt || 0
             });
           });
-          
-          setProducts(productsData);
-          setFilteredProducts(productsData);
-          
-          const names = {};
-          for (const product of productsData) {
-            if (!names[product.sellerId]) {
-              try {
-                const userDoc = await getDoc(doc(db, 'users', product.sellerId));
-                if (userDoc.exists()) {
-                  names[product.sellerId] = {
-                    name: userDoc.data().fullName || userDoc.data().name || 'Unknown Seller',
-                    isFarmer: userDoc.data().userType === 'farmer',
-                    isVerified: userDoc.data().isVerified || false,
-                    isTrusted: userDoc.data().isTrusted || false
-                  };
-                } else {
-                  names[product.sellerId] = {
-                    name: 'Unknown Seller',
-                    isFarmer: false,
-                    isVerified: false,
-                    isTrusted: false
-                  };
-                }
-              } catch (error) {
-                console.error(`Error fetching seller ${product.sellerId}:`, error);
-                names[product.sellerId] = {
-                  name: 'Unknown Seller',
-                  isFarmer: false,
-                  isVerified: false,
-                  isTrusted: false
+
+          // Fetch seller info for all unique sellers
+          const uniqueSellerIds = [...new Set(productsData.map(p => p.sellerId))];
+          await Promise.all(uniqueSellerIds.map(async (sellerId) => {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', sellerId));
+              if (userDoc.exists()) {
+                sellersData[sellerId] = {
+                  name: userDoc.data().fullName || userDoc.data().name || 'Unknown Seller',
+                  username: userDoc.data().username,
+                  phoneNumber: userDoc.data().phoneNumber,
+                  plan: userDoc.data().plan || 'free',
+                  isFarmer: userDoc.data().userType === 'farmer',
+                  isVerified: userDoc.data().isVerified || false,
+                  isTrusted: userDoc.data().isTrusted || false,
+                  profilePhoto: userDoc.data().profilePhoto || userDoc.data().photoURL
                 };
               }
+            } catch (error) {
+              console.error(`Error fetching seller ${sellerId}:`, error);
             }
-          }
-          setSellerNames(names);
+          }));
+
+          setProducts(productsData);
+          setFilteredProducts(productsData);
+          setSellers(sellersData);
           setLoading(false);
         });
       } catch (error) {
@@ -116,67 +125,63 @@ const ProductGallery = () => {
     fetchProducts();
   }, []);
 
+  // Apply filters whenever filter criteria change
   useEffect(() => {
-    applyFilters();
-  }, [priceRange, categories, sellerTypes, dateRange, products]);
-
-  useEffect(() => {
-    const indexOfLastProduct = currentPage * productsPerPage;
-    const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-    setDisplayedProducts(filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct));
-  }, [filteredProducts, currentPage]);
-
-  const applyFilters = () => {
-    let filtered = [...products];
-    
-    filtered = filtered.filter(product => 
-      product.price >= priceRange[0] && product.price <= priceRange[1]
-    );
-    
-    const selectedCategories = Object.keys(categories).filter(cat => categories[cat]);
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(product => 
-        product.category && selectedCategories.includes(product.category.toLowerCase().replace(/ /g, ''))
-      );
-    }
-    
-    const selectedSellerTypes = Object.keys(sellerTypes).filter(type => sellerTypes[type]);
-    if (selectedSellerTypes.length > 0) {
-      filtered = filtered.filter(product => {
-        const seller = sellerNames[product.sellerId];
-        if (!seller) return false;
-        
-        return (
-          (sellerTypes.farmer && seller.isFarmer) ||
-          (sellerTypes.verified && seller.isVerified) ||
-          (sellerTypes.trusted && seller.isTrusted)
-        );
-      });
-    }
-    
-    const now = Date.now();
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-    
-    filtered = filtered.filter(product => {
-      const productDate = product.timestamp;
+    const applyFilters = () => {
+      let results = [...products];
       
-      switch(dateRange) {
-        case '7days':
-          return now - productDate <= sevenDays;
-        case '14days':
-          return now - productDate <= fourteenDays;
-        case '30days':
-          return now - productDate <= thirtyDays;
-        default:
-          return true;
+      // Price filter
+      results = results.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
+      
+      // Category filter
+      const activeCategories = Object.keys(categories).filter(c => categories[c]);
+      if (activeCategories.length > 0) {
+        results = results.filter(p => 
+          p.category && activeCategories.includes(p.category.toLowerCase().replace(/ /g, ''))
+        );
       }
-    });
-    
-    setFilteredProducts(filtered);
-    setCurrentPage(1);
-  };
+      
+      // Seller type filter
+      const activeSellerTypes = Object.keys(sellerTypes).filter(t => sellerTypes[t]);
+      if (activeSellerTypes.length > 0) {
+        results = results.filter(p => {
+          const seller = sellers[p.sellerId];
+          if (!seller) return false;
+          
+          return (
+            (sellerTypes.farmer && seller.isFarmer) ||
+            (sellerTypes.verified && seller.isVerified) ||
+            (sellerTypes.trusted && seller.isTrusted)
+          );
+        });
+      }
+      
+      // Date filter
+      const now = Date.now();
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      
+      results = results.filter(p => {
+        switch(dateRange) {
+          case '7days': return now - p.timestamp <= sevenDays;
+          case '30days': return now - p.timestamp <= thirtyDays;
+          default: return true;
+        }
+      });
+      
+      setFilteredProducts(results);
+      setCurrentPage(1);
+    };
+
+    applyFilters();
+  }, [products, priceRange, categories, sellerTypes, dateRange, sellers]);
+
+  // Pagination effect
+  useEffect(() => {
+    const indexOfLast = currentPage * productsPerPage;
+    const indexOfFirst = indexOfLast - productsPerPage;
+    setDisplayedProducts(filteredProducts.slice(indexOfFirst, indexOfLast));
+  }, [filteredProducts, currentPage]);
 
   const handlePriceChange = (e, index) => {
     const newPriceRange = [...priceRange];
@@ -210,13 +215,10 @@ const ProductGallery = () => {
     setPriceRange([0, 10000]);
     setCategories({
       fruits: false,
-      grains: false,
-      nutsAndDryFruits: false,
-      oilAndOilseeds: false,
-      pulses: false,
-      spices: false,
-      sweeteners: false,
       vegetables: false,
+      flowers: false,
+      herbs: false,
+      trees: false,
       others: false
     });
     setSellerTypes({
@@ -227,13 +229,19 @@ const ProductGallery = () => {
     setDateRange('all');
   };
 
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleShare = (productId) => {
+    const url = `${window.location.origin}/product/${productId}`;
+    if (navigator.share) {
+      navigator.share({ title: 'Check this plant on Ankurit', url });
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Link copied!');
+    }
   };
 
-  const handleProductClick = (productId) => {
-    navigate(`/product/${productId}`);
+  const paginate = (page) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
   };
 
   return (
@@ -248,7 +256,7 @@ const ProductGallery = () => {
             {showFilters ? 'Hide Filters' : 'Filters'}
           </button>
         </div>
-        
+
         <div className="gallery-content">
           <div className={`desktop-filters ${showFilters ? 'mobile-visible' : ''}`}>
             <div className="filter-section">
@@ -315,13 +323,10 @@ const ProductGallery = () => {
               <div className="filter-options">
                 {Object.entries({
                   fruits: 'Fruits',
-                  grains: 'Grains',
-                  nutsAndDryFruits: 'Nuts & Dry Fruits',
-                  oilAndOilseeds: 'Oil & Oilseeds',
-                  pulses: 'Pulses',
-                  spices: 'Spices',
-                  sweeteners: 'Sweeteners',
                   vegetables: 'Vegetables',
+                  flowers: 'Flowers',
+                  herbs: 'Herbs',
+                  trees: 'Trees',
                   others: 'Others'
                 }).map(([key, label]) => (
                   <button
@@ -375,12 +380,6 @@ const ProductGallery = () => {
                   Last 7 Days
                 </button>
                 <button
-                  className={`filter-option ${dateRange === '14days' ? 'active' : ''}`}
-                  onClick={() => handleDateRangeChange('14days')}
-                >
-                  Last 14 Days
-                </button>
-                <button
                   className={`filter-option ${dateRange === '30days' ? 'active' : ''}`}
                   onClick={() => handleDateRangeChange('30days')}
                 >
@@ -405,13 +404,12 @@ const ProductGallery = () => {
                 <div className="products-grid">
                   {displayedProducts.length > 0 ? (
                     displayedProducts.map(product => (
-                      <ProductCard 
-                        key={product.id} 
-                        product={product} 
-                        sellerName={sellerNames[product.sellerId]?.name || 'Unknown Seller'}
-                        isVerified={sellerNames[product.sellerId]?.isVerified || false}
-                        isTrusted={sellerNames[product.sellerId]?.isTrusted || false}
-                        onClick={() => handleProductClick(product.id)}
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        seller={sellers[product.sellerId]}
+                        onShare={() => handleShare(product.id)}
+                        onClick={() => navigate(`/product/${product.id}`)}
                       />
                     ))
                   ) : (
@@ -422,7 +420,7 @@ const ProductGallery = () => {
                     </div>
                   )}
                 </div>
-                
+
                 {filteredProducts.length > productsPerPage && (
                   <div className="pagination">
                     <button 
@@ -431,17 +429,15 @@ const ProductGallery = () => {
                     >
                       &lt; Previous
                     </button>
-                    
-                    {Array.from({ length: Math.ceil(filteredProducts.length / productsPerPage) }).map((_, index) => (
+                    {[...Array(Math.ceil(filteredProducts.length / productsPerPage))].map((_, i) => (
                       <button
-                        key={index}
-                        onClick={() => paginate(index + 1)}
-                        className={currentPage === index + 1 ? 'active' : ''}
+                        key={i}
+                        onClick={() => paginate(i + 1)}
+                        className={currentPage === i + 1 ? 'active' : ''}
                       >
-                        {index + 1}
+                        {i + 1}
                       </button>
                     ))}
-                    
                     <button 
                       onClick={() => paginate(currentPage + 1)} 
                       disabled={currentPage === Math.ceil(filteredProducts.length / productsPerPage)}
@@ -455,95 +451,88 @@ const ProductGallery = () => {
           </div>
         </div>
       </div>
-      
       <Footer />
     </div>
   );
 };
 
-const ProductCard = ({ product, sellerName, isVerified, isTrusted, onClick }) => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+// Your existing ProductCard component remains the same
+const ProductCard = ({ product, seller, onShare, onClick }) => {
+  const navigate = useNavigate();
 
-  const handleNextImage = (e) => {
+  const handleWhatsApp = (e) => {
     e.stopPropagation();
-    setCurrentImageIndex(prev => 
-      prev === product.imageUrls.length - 1 ? 0 : prev + 1
-    );
+    if (!seller?.phoneNumber) {
+      alert('Seller has not shared contact info');
+      return;
+    }
+    const number = seller.phoneNumber.replace(/\D/g, '');
+    const message = `Hi ${seller.name}, I'm interested in ${product.name} (₹${product.price})`;
+    window.open(`https://wa.me/91${number}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  const handlePrevImage = (e) => {
+  const handleChat = (e) => {
     e.stopPropagation();
-    setCurrentImageIndex(prev => 
-      prev === 0 ? product.imageUrls.length - 1 : prev - 1
-    );
+    navigate(`/messages/${product.sellerId}`);
   };
 
-  const currentImageUrl = product.imageUrls?.length > currentImageIndex 
-    ? product.imageUrls[currentImageIndex]
-    : null;
+  const handleSellerClick = (e) => {
+    e.stopPropagation();
+    navigate(`/profile/${product.sellerId}`);
+  };
 
   return (
     <div className="product-card" onClick={onClick}>
-      <div className="product-image-container">
-        {currentImageUrl ? (
-          <>
-            <img 
-              src={currentImageUrl} 
-              alt={product.name}
-              loading="lazy"
-              onError={(e) => {
-                e.target.src = '/placeholder-plant.jpg';
-                e.target.onerror = null;
-              }}
-            />
-            {product.imageUrls.length > 1 && (
-              <>
-                <button 
-                  className="image-nav-button prev"
-                  onClick={handlePrevImage}
-                  aria-label="Previous image"
-                >
-                  &lt;
-                </button>
-                <button 
-                  className="image-nav-button next"
-                  onClick={handleNextImage}
-                  aria-label="Next image"
-                >
-                  &gt;
-                </button>
-                <div className="image-counter">
-                  {currentImageIndex + 1}/{product.imageUrls.length}
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <div className="image-placeholder">
-            <span>No Image Available</span>
-          </div>
-        )}
-      </div>
+<div className="product-image-container">
+  <img 
+    src={product.imageUrls?.[0] || '/placeholder-plant.jpg'} 
+    alt={product.name}
+    onError={(e) => e.target.src = '/placeholder-plant.jpg'}
+  />
+  <button className="share-button" onClick={(e) => {
+    e.stopPropagation();
+    onShare();
+  }}>
+    <svg viewBox="0 0 24 24">
+      <path d="M18 16.08c-.7 0-1.3.27-1.77.72l-7.12-4.11c.05-.15.09-.31.09-.47 0-.16-.04-.32-.09-.47l7.12-4.11c.47.45 1.07.72 1.77.72 1.54 0 2.8-1.26 2.8-2.8 0-1.54-1.26-2.8-2.8-2.8-1.54 0-2.8 1.26-2.8 2.8 0 .16.04.32.09.47l-7.12 4.11c-.47-.45-1.07-.72-1.77-.72-1.54 0-2.8 1.26-2.8 2.8 0 1.54 1.26 2.8 2.8 2.8.7 0 1.3-.27 1.77-.72l7.12 4.11c-.05.15-.09.31-.09.47 0 1.54 1.26 2.8 2.8 2.8 1.54 0 2.8-1.26 2.8-2.8 0-1.54-1.26-2.8-2.8-2.8z"/>
+    </svg>
+  </button>
+</div>
+
       <div className="product-details">
         <h3>{product.name}</h3>
-        <p className="price">₹{product.price?.toLocaleString() || 'N/A'}</p>
-        {product.category && (
-          <span className="product-category">{product.category}</span>
-        )}
-        <p className="description">
-          {product.description?.length > 100 
-            ? `${product.description.substring(0, 100)}...` 
-            : product.description || 'No description available'}
-        </p>
-        <div className="product-meta">
-          <div className="seller-info">
-            <span className="seller">Sold by: {sellerName}</span>
-            <div className="seller-badges">
-              {isVerified && <span className="badge verified">Verified</span>}
-              {isTrusted && <span className="badge trusted">Trusted</span>}
+        <p className="price">₹{product.price?.toLocaleString()}</p>
+
+        <div className="seller-info" onClick={handleSellerClick}>
+          <img 
+            src={seller?.profilePhoto || '/default-avatar.jpg'} 
+            alt={seller?.name}
+            className="seller-avatar"
+          />
+          <div className="seller-details">
+            <div className="seller-name">
+              {seller?.name}
+              {seller?.plan !== 'free' && (
+                <img src={premiumBadge} alt="Premium" className="premium-badge" />
+              )}
             </div>
+            <div className="seller-username">@{seller?.username || 'seller'}</div>
           </div>
-          <span className="location">{product.location || 'Location not specified'}</span>
+        </div>
+
+        <div className="product-actions">
+          <button className="whatsapp-button" onClick={handleWhatsApp}>
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.183 8.183 0 0 1 2.41 5.83c.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.51-1.38-1.77-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.4-.42-.56-.43-.14 0-.3-.01-.47-.01-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.38 1.01 2.54.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.18-.5 1.62-.94.45-.45.67-.87.74-1.01.08-.14.06-.26.01-.36z"/>
+            </svg>
+            WhatsApp
+          </button>
+          <button className="chat-button" onClick={handleChat}>
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Chat Now
+          </button>
         </div>
       </div>
     </div>

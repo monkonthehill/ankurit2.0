@@ -9,6 +9,7 @@
   --bg-dark: #1a1a1a;
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
+  --notification-badge: #ff4d4f;
 }
 
 * {
@@ -34,6 +35,7 @@ button {
 
 /* Logo Styles */
 .logo {
+  margin-top: 1rem;
   height: 40px;
   width: auto;
   object-fit: contain;
@@ -64,12 +66,55 @@ button {
   align-items: center;
 }
 
+.mobile-header-icons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mobile-notification-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dark);
+  padding: 0.25rem;
+  transition: var(--transition);
+}
+
+.mobile-notification-icon:hover {
+  color: var(--primary-color);
+}
+
+.mobile-notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: var(--notification-badge);
+  color: white;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 0 4px;
+  border: 2px solid var(--bg-light);
+}
+
 .mobile-search-icon-button {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-dark);
   padding: 0.5rem;
+  transition: var(--transition);
+}
+
+.mobile-search-icon-button:hover {
+  color: var(--primary-color);
 }
 
 /* Desktop Navbar */
@@ -77,7 +122,7 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 1rem 1rem;
   background-color: #f5f5f597;
   box-shadow: var(--shadow);
   position: sticky;
@@ -92,10 +137,55 @@ button {
 }
 
 .logo-container {
-  display: flex;
+ margin-bottom: 2rem;
   align-items: center;
 }
 
+/* In your Navbar.css */
+.inbox-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4d4f;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.mobile-inbox-icon {
+  position: relative;
+  margin-right: 15px;
+  bottom: -2px
+}
+
+.mobile-notification-badge {
+  position: absolute;
+  top: -5px;
+  right: 5px;
+  background-color: #ff4d4f;
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+}
 .desktop-nav ul {
   display: flex;
   list-style: none;
@@ -147,6 +237,37 @@ button {
   stroke-width: 2;
 }
 
+.notification-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dark);
+  padding: 0.5rem;
+  transition: var(--transition);
+  position: relative;
+}
+
+.notification-icon:hover {
+  color: var(--primary-color);
+}
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: var(--notification-badge);
+  color: white;
+  border-radius: 50%;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 0 3px;
+}
+
 .user-profile {
   display: flex;
   align-items: center;
@@ -160,6 +281,12 @@ button {
   color: var(--primary-color);
 }
 
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
 .login-button {
   display: flex;
@@ -349,6 +476,63 @@ button {
 .link-icon {
   stroke-width: 1.5;
 }
+/* Notification Badges */
+.notification-badge,
+.mobile-notification-badge,
+.menu-notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  font-weight: bold;
+}
+
+.mobile-notification-badge {
+  top: -3px;
+  right: -3px;
+}
+
+.menu-notification-badge {
+  position: relative;
+  top: auto;
+  right: auto;
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+.notification-icon {
+  position: relative;
+  display: flex;
+}
+
+.mobile-notification-icon {
+  position: relative;
+  display: flex;
+}
+
+/* Ensure the notification icon has space for the badge */
+.search-user-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.mobile-header-icons {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
 
 /* Responsive Styles */
 @media (max-width: 768px) {
@@ -362,6 +546,7 @@ button {
 
   .mobile-bottom-nav {
     display: flex;
+    justify-content: space-around;
   }
 }
 
@@ -369,4 +554,4 @@ button {
   .mobile-menu-overlay {
     display: none;
   }
-}
+} 

@@ -1,34 +1,31 @@
-import React, { useMemo } from 'react';
+// src/firebase/Authchecker.js
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useUser } from './UserProvider';
 
 const AuthChecker = ({ 
   children, 
   requireAuth = true,
-  redirectTo = '/auth',
-  redirectIfAuthenticated = false,
-  redirectAuthenticatedTo = '/'
+  requireProfileComplete = false
 }) => {
-  const { user, loading } = useUser();
+  const { user, loading, profileCompleted } = useUser();
   const location = useLocation();
 
-  const authStatus = useMemo(() => {
-    if (loading) return 'loading';
-    if (requireAuth && !user) return 'unauthenticated';
-    if (redirectIfAuthenticated && user) return 'redirect-authenticated';
-    return 'authenticated';
-  }, [user, loading, requireAuth, redirectIfAuthenticated]);
+  useEffect(() => {
+    // No cleanup needed for this effect
+    return () => {}; // Explicit empty cleanup function
+  }, []);
 
-  if (authStatus === 'loading') {
+  if (loading) {
     return <div className="auth-loading-spinner">Loading...</div>;
   }
 
-  if (authStatus === 'unauthenticated') {
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+  if (requireAuth && !user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (authStatus === 'redirect-authenticated') {
-    return <Navigate to={redirectAuthenticatedTo} replace />;
+  if (requireProfileComplete && user && !profileCompleted) {
+    return <Navigate to="/profile_setup" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

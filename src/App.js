@@ -15,6 +15,14 @@ import ProductDetailPage from './pages/Products/ProductDetailPage';
 import ChatRoom from './pages/Chat/Chatroom';
 import ChatInbox from './pages/Chat/Chatinbox';
 import InboxPage from './pages/Chat/InboxPage';
+import NotificationPage from './pages/Notification/NotificationPage';
+import Explore from './pages/Explore/Explore';
+import Support from './pages/Support/Support';
+import AboutUs from './pages/Support/AboutUs';
+import PreOrder from './pages/Pre-Order/PreOrder';
+import PlantUpload from './pages/Products/PlantUploadPage';
+import Helpsupport from './pages/Support/help-support'
+import Legalpolicy from './pages/Support/legal-policy';
 import './App.css';
 
 // ImageKit Configuration
@@ -35,24 +43,83 @@ function App() {
         <UserProvider>
           <Navbar />
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Homepage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/product/:productId" element={<ProductDetailPage />} />
+            <Route path="/about-us" element={<AboutUs />} />
+            <Route path="/legal-privacy" element={< Legalpolicy />} />
+            <Route path="/help-support" element={< Helpsupport />} />
             
             {/* Profile Routes */}
-            <Route path="/profile" element={<AuthChecker><ProfilePage /></AuthChecker>} />
-            <Route path="/profile/:userId" element={<AuthChecker requireAuth={false}><ProfilePage /></AuthChecker>} />
-            <Route path="/profile_setup" element={<AuthChecker><ProfileSetupPage /></AuthChecker>} />
+            <Route path="/profile" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <ProfilePage />
+              </AuthChecker>
+            } />
+            <Route path="/profile/:userId" element={
+              <AuthChecker requireAuth={false}>
+                <ProfilePage />
+              </AuthChecker>
+            } />
+            <Route path="/profile_setup" element={
+              <AuthChecker requireAuth requireProfileComplete={false}>
+                <ProfileSetupPage />
+              </AuthChecker>
+            } />
             
-            {/* Chat/Messaging Routes - Two different inbox systems */}
-            <Route path="/messages" element={<AuthChecker><ChatInbox /></AuthChecker>} />
-            <Route path="/inbox" element={<AuthChecker><InboxPage /></AuthChecker>} />
-            <Route path="/messages/:receiverId" element={<AuthChecker><ChatRoom /></AuthChecker>} />
-            
-            {/* Other Routes */}
-            <Route path="/products" element={<AuthChecker><ProductsPage /></AuthChecker>} />
-            <Route path="/plans" element={<AuthChecker><Pricing /></AuthChecker>} />
+            {/* Protected Routes - Require Auth AND Completed Profile */}
+            <Route path="/messages" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <ChatInbox />
+              </AuthChecker>
+            } />
+            <Route path="/inbox" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <InboxPage />
+              </AuthChecker>
+            } />
+            <Route path="/messages/:receiverId" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <ChatRoom />
+              </AuthChecker>
+            } />
+            <Route path="/notification" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <NotificationPage />
+              </AuthChecker>
+            } />
+            <Route path="/add-product" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <PlantUpload />
+              </AuthChecker>
+            } />
+            <Route path="/products" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <ProductsPage />
+              </AuthChecker>
+            } />
+            <Route path="/plans" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <Pricing />
+              </AuthChecker>
+            } />
+            <Route path="/explore" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <Explore />
+              </AuthChecker>
+            } />
+            <Route path="/support" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <Support />
+              </AuthChecker>
+            } />
+            <Route path="/pre-order" element={
+              <AuthChecker requireAuth requireProfileComplete>
+                <PreOrder/>
+              </AuthChecker>
+            } />
             
             {/* Fallback Route */}
             <Route path="*" element={<Navigate to="/" replace />} />
